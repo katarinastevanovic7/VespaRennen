@@ -4,6 +4,27 @@
 
 ## Getting started
 
+Cloned Project in Gitlab 
+
+1. Install Node.js (https://nodejs.org/en/download)
+ -- Test in terminal with 'node -v' and 'npm -v' - Should be shown the version number
+
+ If 'npm -v' is not working start Powershell as Administrator and type 
+ 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' then 'J' or 'Y'
+
+2. then Install Vue CLI and type in the Terminal 'npm install -g @vue/cli'
+ -- Test in Terminal with 'vue --version'
+
+Already done : 
+ 1. vue create frontend - choose Vue 3 
+
+Start your Frontend 
+ 2. cd frontend 
+ 3. npm run serve 
+  App running at:
+  - Local:   http://localhost:8080/ 
+  - Network: http://192.168.178.180:8080/
+
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
 Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!

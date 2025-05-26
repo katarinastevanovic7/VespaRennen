@@ -1,0 +1,209 @@
+/* Basis-Design */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+    font-family: 'Sarabun', sans-serif;
+    color: #FFF8E1;
+    overflow-y: auto;
+  }
+  
+  /* App-Container: zentriert Inhalte */
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 1rem;
+  }
+  
+  .speed-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1rem;
+    gap: 1rem;
+  }
+
+  /* Geschwindigkeit */
+  .speed-display {
+    font-size: 120px;
+    font-weight: 400;
+    color: #FFF8E1;
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 2.5rem;
+  }
+
+  
+  .speed-display .unit {
+    font-size: 24px;
+    margin-left: 8px;
+  }
+  
+  /* Zielgeschwindigkeit */
+  .target-display {
+    font-size: 20px;
+    padding: 0.2rem 0;
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.rem;
+  }
+  
+  /* 🟨 Container für Timer + Buttons */
+  .timer-container {
+    background-color: #FFF8E1;
+    color: black;
+    border-radius: 35px;
+    width: 110%;
+    max-width: 500px;
+    margin-top: auto;
+    margin-bottom: 1rem;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10rem;
+    position: relative; /* Wichtig für absolute Positionierung */
+  }
+  
+  .timer-display {
+   /* height: 100px; /* feste Höhe, verhindert Ausdehnung */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .timer-display .timer {
+    font-size: 120px;
+    line-height: 1;
+    position: absolute;
+  }
+  
+  
+  
+  /* Button-Gruppe innerhalb des Containers */
+  .button-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+  }
+  
+  /* Button-Styles */
+  button {
+    font-size: 20px;
+    padding: 0.6rem 1.6rem;
+    border-radius: 35px;
+    font-weight: bold;
+    min-width: 100px;
+    border: none;
+  }
+
+  /* Start-Button größer */
+.button-row .btn-warning {
+    font-size: 22px;
+    padding: 0.8rem 2rem;
+    min-width: 200px;
+    border-radius: 35px;
+  }
+  
+  /* Stop + Reset nebeneinander */
+  .stop-reset-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  /* Bootstrap-Button-Anpassungen */
+  .btn-warning {
+    background-color: #f4a300 !important;
+    color: black !important;
+    margin-bottom: 1rem;
+  }
+  
+  .btn-danger {
+    background-color: #FB0000D9 !important;
+    color: black !important;
+  }
+  
+  .btn-secondary {
+    background-color: #444 !important;
+    color: white !important;
+  }
+  
+  .arrow {
+    font-size: 36px;
+  }
+  
+  .text-danger {
+    color: #ff4c4c;
+  }
+  
+  .text-success {
+    color: #00cc66;
+  }
+  
+  /* Trennlinien */
+  .separator {
+    width: 220%;
+    height: 2px;
+    background-color: #FFF8E1;
+    border: none;
+    opacity: 1;
+    margin: 0; /* Basis zurücksetzen */
+  }
+  
+  /* Erste Linie unter der Geschwindigkeit */
+  .separator-top {
+    position: relative;
+    /*top: 2rem; /* verschiebt nur die Linie selbst nach unten */
+    margin-top: 1.5rem;
+  }
+  
+  /* Zweite Linie unter der Zielanzeige */
+  .separator-bottom {
+    margin-top: 1rem;
+    margin-bottom: 0.1rem; /* näher zum beigen Frame */
+  }
+
+
+  /* Skalierbarer Wrapper */
+.scale-wrapper {
+    transform: scale(0.95); /* leicht verkleinern für alle */
+    transform-origin: top center;
+  }
+  
+  /* Für kleine Bildschirme: zusätzlich stärker skalieren */
+  @media (max-height: 700px) {
+    .scale-wrapper {
+      transform: scale(0.85);
+      /*margin-top: -5rem;*/
+    }
+  
+    /* Zusätzlich kannst du optional Feinjustierung machen: */
+    .speed-display {
+      font-size: 90px;
+    }
+  
+    .timer-display .timer {
+      font-size: 80px;
+    }
+  
+    button {
+      padding: 0.4rem 1rem;
+      font-size: 16px;
+    }
+  
+    .timer-container {
+      padding: 1.2rem;
+      gap: 1rem;
+    }
+  }
+  
+  

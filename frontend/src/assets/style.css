@@ -57,8 +57,8 @@ body {
   .timer-container {
     background-color: #FFF8E1;
     color: black;
-    border-radius: 35px;
-    width: 110%;
+    border-radius: 50px;
+    width: 150%;
     max-width: 500px;
     margin-top: auto;
     margin-bottom: 1rem;
@@ -71,7 +71,7 @@ body {
   }
   
   .timer-display {
-   /* height: 100px; /* feste Höhe, verhindert Ausdehnung */
+   height: 30px; /* feste Höhe, verhindert Ausdehnung */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,8 +82,22 @@ body {
     font-size: 120px;
     line-height: 1;
     position: absolute;
+    top: 20px;
   }
   
+  .phase-container {
+    height: 10px; /* feste Höhe verhindert das Springen */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    margin-top: -2rem; /* reduziert den Abstand zum Timer */
+  }
+  
+  .phase-number {
+    font-size: 60px; /* kleiner als Timer-Zeit */
+    line-height: 1;
+    
+  }
   
   
   /* Button-Gruppe innerhalb des Containers */
@@ -203,6 +217,27 @@ body {
     .timer-container {
       padding: 1.2rem;
       gap: 1rem;
+    }
+    .popup-message {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-size: 20px;
+      z-index: 9999;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      animation: fadeInOut 4s ease-in-out forwards;
+    }
+    
+    @keyframes fadeInOut {
+      0%   { opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { opacity: 0; }
     }
   }
   

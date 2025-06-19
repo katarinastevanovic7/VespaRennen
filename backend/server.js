@@ -1,25 +1,40 @@
 // server.js
 const express = require('express');
 const WebSocket = require('ws');
+const cors = require('cors'); // falls Frontend auf anderem Port läuft
 const app = express();
 const port = 3000;
 
-// Express: Test-Endpunkt
+let latestData = null; // ⬅️ Speicher für GPS-Daten
+
+app.use(cors());               // optional, aber nützlich für Vue
+app.use(express.json());       // damit JSON im Body geparst wird
+
+// Test-Endpunkt
 app.get('/', (req, res) => {
   res.send('Backend läuft!');
 });
-app.listen(port, () => {
-  console.log(`HTTP-Server läuft unter http://localhost:${port}`);
+
+// POST: GPS-Daten empfangen und speichern
+app.post('/api/gps/update', (req, res) => {
+  latestData = req.body;
+  console.log('📡 Neue GPS-Daten empfangen:', latestData);
+  res.sendStatus(200);
 });
 
-// WebSocket-Server auf Port 8080
+// GET: GPS-Daten abfragen
+app.get('/api/gps/status', (req, res) => {
+  res.json(latestData || {});
+});
+
+// HTTP-Server starten
+app.listen(port, () => {
+  console.log(`✅ HTTP-Server läuft unter http://localhost:${port}`);
+});
+
+// WebSocket-Server auf Port 8080 (optional, du kannst ihn lassen)
 const wss = new WebSocket.Server({ port: 8080 });
 wss.on('connection', (ws) => {
-  console.log('Frontend verbunden');
+  console.log('🌐 WebSocket: Frontend verbunden');
   
-  // Dummy-Speed alle 2 Sekunden senden
-  setInterval(() => {
-    const speed = (Math.random() * 30).toFixed(1); // z. B. 12.3 km/h
-    ws.send(speed);
-  }, 2000);
 });

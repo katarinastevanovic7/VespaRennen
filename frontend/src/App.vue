@@ -2,49 +2,51 @@
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
       <div class="speed-wrapper">
-        <div class="speed-display">
-          <span class="speed">{{ speedDisplay }}</span>
-          <span class="unit">km/h</span>
-        </div>
+
+        <!-- Aktuelle Geschwindigkeit -->
+        <SpeedComponent :speed="speedDisplay" />
 
         <hr class="separator" />
 
-        <div class="target-display">
-          <span class="arrow">{{ directionArrow }}</span>
-          <span :class="directionClass">{{ targetSpeedDisplay }}</span>
-        </div>
+        <!-- Zielgeschwindigkeit -->
+        <TargetSpeedComponent 
+          :arrow="directionArrow" 
+          :targetSpeed="targetSpeedDisplay" 
+          :directionClass="directionClass" 
+        />
 
         <hr class="separator" />
 
-        <div class="timer-container">
-          <div class="timer-display">
-            <span class="timer">{{ formattedTime }}</span>
-          </div>
+        <TimerComponent 
+          :time="formattedTime"
+          :phase="phaseCounter"
+          :phaseVisible="time <= 35"
+          :running="running"
+          @start="start"
+          @stop="stop"
+          @reset="reset"
+        />
 
-       <div class="phase-container">
-  <span v-if="time <= 35" class="phase-number">{{ phaseCounter }}</span>
-</div>
+        <MessageComponent :message="message" />
 
-          <div class="button-row">
-            <button class="btn btn-warning" @click="start" :disabled="running">Start</button>
-            <div class="stop-reset-row">
-              <button class="btn btn-danger" @click="stop" :disabled="!running">Stop</button>
-              <button class="btn btn-secondary" @click="reset">Reset</button>
-            </div>
-          </div>
-
-          <div v-if="message" class="popup-message">
-  {{ message }}
-</div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import SpeedComponent from './components/speedComponent.vue';
+import TargetSpeedComponent from './components/targetSpeedComponent.vue';
+import TimerComponent from './components/timerComponent.vue';
+import MessageComponent from './components/messageComponent.vue';
+
 export default {
-  name: 'App',
+  components: {
+    SpeedComponent,
+    TargetSpeedComponent,
+    TimerComponent,
+    MessageComponent
+  },
   data() {
     return {
       running: false,
@@ -56,7 +58,6 @@ export default {
       targetSpeedDisplay: '--',
       directionArrow: '',
       directionClass: '',
-      phaseCounter: 6,
       message: ''
     };
   },
@@ -67,18 +68,41 @@ export default {
       return `${minutes}:${seconds}`;
     }
   },
+  mounted() {
+    // Holt GPS-Daten vom Backend alle 1 Sekunde
+    setInterval(() => {
+      fetch('http://localhost:3000/api/gps/status')
+        .then(res => res.json())
+        .then(data => {
+          console.log('📡 GPS-Daten empfangen:', data);
+          if (data.speed !== undefined) {
+            const speedKmh = data.speed * 3.6;
+            this.speedDisplay = speedKmh.toFixed(1);
+
+            const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
+            this.targetSpeedDisplay = `${target} km/h`;
+
+            this.directionArrow =
+              speedKmh > target + 1 ? '↓' :
+              speedKmh < target - 1 ? '↑' : '•';
+
+            this.directionClass =
+              speedKmh > target + 1 ? 'text-danger' :
+              speedKmh < target - 1 ? 'text-success' : '';
+          }
+        });
+    }, 1000);
+  },
   methods: {
     start() {
       this.message = '';
       this.running = true;
-      this.phaseCounter = 6;
-      this.time = 60; // 5 Minuten
+      this.time = 300;
 
       this.timerInterval = setInterval(() => {
         if (this.time <= 0) {
           this.message = 'You made it Jörg! 🎉🛵';
           this.stop();
-       
           return;
         }
 
@@ -87,35 +111,6 @@ export default {
         }
 
         this.time--;
-
-        let speed;
-        if (this.time > 240) {
-          speed = Math.random() * 10 + 5;
-        } else if (this.time > 60) {
-          speed = 15 + Math.sin(this.time / 10) * 10 + Math.random() * 5;
-        } else {
-          speed = 10 + Math.random() * 6;
-        }
-
-        speed = Math.min(Math.max(speed, 0), 50);
-        this.speedDisplay = speed.toFixed(0);
-
-        const speedMps = speed * 1000 / 3600;
-        this.distance += speedMps;
-
-        const targetSpeedKmh = this.time >= 290 ? 30 : 10;
-        this.targetSpeedDisplay = `${targetSpeedKmh.toFixed(0)} km/h`;
-
-        if (speed > targetSpeedKmh + 1) {
-          this.directionArrow = '↓';
-          this.directionClass = 'text-danger';
-        } else if (speed < targetSpeedKmh - 1) {
-          this.directionArrow = '↑';
-          this.directionClass = 'text-success';
-        } else {
-          this.directionArrow = '•';
-          this.directionClass = '';
-        }
       }, 1000);
     },
     stop() {
@@ -139,5 +134,5 @@ export default {
 </script>
 
 <style scoped>
-/* Deine CSS-Klassen wie .timer-display, .button-row, usw. */
+/* optionales Styling, falls du was anpassen willst */
 </style>

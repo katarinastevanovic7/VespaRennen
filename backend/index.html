@@ -61,6 +61,11 @@
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
   <script>
+  ////
+    let lastLat = null;
+    let lastLng = null;
+    let lastTimestamp = null;
+////
     // Karte initialisieren (mit Default View, wird später durch Standort überschrieben)
    const map = L.map('map').setView([47.7, 9.0], 17); 
  const satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -328,6 +333,16 @@ let suggestedSpeedUpper = null;
 
           lastUpdateTime = Date.now();
           currentSpeed = speed !== null ? speed : null;
+
+          fetch('http://localhost:3000/api/gps/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+          speed: currentSpeed,
+          distance: distanceCovered,
+          timestamp: Date.now()
+           })
+          });
 
           const currentPoint = turf.point([lng, lat]);
           const snapped = turf.nearestPointOnLine(turfLine, currentPoint);

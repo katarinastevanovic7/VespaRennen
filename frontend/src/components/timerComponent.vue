@@ -4,7 +4,7 @@
       <span class="timer">{{ time }}</span>
     </div>
 
-    <div class="phase-container" v-if="phaseVisible">
+    <div class="phase-container" v-show="phaseVisible">
       <span class="phase-number">{{ phase }}</span>
     </div>
 
@@ -16,10 +16,20 @@
       </div>
     </div>
   </div>
+  
+<div v-if="showMessage" class="modal-overlay">
+    <div class="modal-box">
+      <button class="close-btn" @click="$emit('closeMessage')">×</button>
+      <p class="modal-message">{{ message }}</p>
+    </div>
+  </div>
+
 </template>
 
 <script>
 export default {
-  props: ['time', 'phase', 'phaseVisible', 'running']
+  props: ['time', 'phase', 'phaseVisible', 'running', 'message', 'showMessage'],
+    emits: ['start', 'stop', 'reset', 'closeMessage']
+
 };
 </script>

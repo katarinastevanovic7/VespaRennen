@@ -20,11 +20,16 @@
         <TimerComponent 
           :time="formattedTime"
           :phase="phaseCounter"
-          :phaseVisible="time <= 35"
           :running="running"
+          :message="message"
+          :showMessage="showMessage"
           @start="start"
           @stop="stop"
           @reset="reset"
+          @pause="pause"
+          @resume="resume"
+          @closeMessage="showMessage = false"
+
         />
 
         <MessageComponent :message="message" />
@@ -49,16 +54,18 @@ export default {
   },
   data() {
     return {
-      running: false,
-      countdown: 5,
-      time: 0,
-      distance: 0,
+      time: 10,
       timerInterval: null,
+      running: false,
+      paused: false,
+      distance: 0,
       speedDisplay: '--',
       targetSpeedDisplay: '--',
       directionArrow: '',
       directionClass: '',
+      showMessage: false,
       message: ''
+     
     };
   },
   computed: {
@@ -96,12 +103,18 @@ export default {
   methods: {
     start() {
       this.message = '';
+      this.showMessage = false;
       this.running = true;
-      this.time = 300;
+      this.paused = false;
+
+      if (this.time === 0) {
+        this.time = 300;
+      }
 
       this.timerInterval = setInterval(() => {
         if (this.time <= 0) {
           this.message = 'You made it Jörg! 🎉🛵';
+          this.showMessage = true; 
           this.stop();
           return;
         }
@@ -113,21 +126,51 @@ export default {
         this.time--;
       }, 1000);
     },
+
     stop() {
       clearInterval(this.timerInterval);
       this.running = false;
     },
+
     reset() {
-      clearInterval(this.timerInterval);
-      this.time = 0;
+      this.stop();
+      this.time = 300;
       this.distance = 0;
       this.running = false;
-      this.phaseCounter = 6;
-      this.message = '';
+      this.paused = false;
       this.speedDisplay = '--';
       this.targetSpeedDisplay = '--';
       this.directionArrow = '';
       this.directionClass = '';
+    },
+
+    pause() {
+      if (this.running && !this.paused) {
+        clearInterval(this.timerInterval);
+        this.paused = true;
+        this.running = false;
+        this.message = '⏸️ Pausiert';
+      }
+    },
+
+    resume() {
+      if (this.paused) {
+        this.running = true;
+        this.paused = false;
+        this.message = '';
+
+        this.timerInterval = setInterval(() => {
+          if (this.time <= 0) {
+            this.message = 'You made it Jörg! 🎉🛵';
+            this.stop();
+            return;
+          }
+
+      
+
+          this.time--;
+        }, 1000);
+      }
     }
   }
 };

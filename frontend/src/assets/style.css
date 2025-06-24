@@ -67,11 +67,14 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 10rem;
+    min-height: 320px;       /* fixiere Höhe für konstantes Layout */
+  max-height: 320px;
     position: relative; /* Wichtig für absolute Positionierung */
+
   }
   
   .timer-display {
-   height: 30px; /* feste Höhe, verhindert Ausdehnung */
+    height: 150px; /* realistische Höhe für große Zahlen */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -85,19 +88,8 @@ body {
     top: 20px;
   }
   
-  .phase-container {
-    height: 10px; /* feste Höhe verhindert das Springen */
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    margin-top: -2rem; /* reduziert den Abstand zum Timer */
-  }
-  
-  .phase-number {
-    font-size: 60px; /* kleiner als Timer-Zeit */
-    line-height: 1;
-    
-  }
+ 
+ 
   
   
   /* Button-Gruppe innerhalb des Containers */
@@ -115,6 +107,7 @@ body {
     padding: 0.6rem 1.6rem;
     border-radius: 35px;
     font-weight: bold;
+    min-height: 50px;
     min-width: 100px;
     border: none;
   }
@@ -206,7 +199,10 @@ body {
     }
   
     .timer-display .timer {
-      font-size: 80px;
+      font-size: 120px;
+      line-height: 1;
+      position: relative; /* vorher: absolute -> Problem! */
+      top: 0; /* oder einfach weglassen */
     }
   
     button {
@@ -218,19 +214,50 @@ body {
       padding: 1.2rem;
       gap: 1rem;
     }
-    .popup-message {
+    
+    /* Dunkler halbtransparenter Hintergrund */
+    .modal-overlay {
       position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #fff3cd;
-      color: #856404;
-      padding: 1rem 2rem;
-      border-radius: 12px;
-      font-size: 20px;
-      z-index: 9999;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-      animation: fadeInOut 4s ease-in-out forwards;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .modal-box {
+      background-color: white;
+      padding: 2rem 1.5rem;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      position: relative;
+      z-index: 1001;
+    }
+    
+    .modal-message {
+      font-size: 18px;
+      color: #333;
+      margin: 0;
+      padding-top: 1rem;
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
     }
     
     @keyframes fadeInOut {

@@ -2,38 +2,27 @@
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
       <div class="speed-wrapper">
-
-        <!-- Aktuelle Geschwindigkeit -->
         <SpeedComponent :speed="speedDisplay" />
-
         <hr class="separator" />
-
-        <!-- Zielgeschwindigkeit -->
         <TargetSpeedComponent 
           :arrow="directionArrow" 
           :targetSpeed="targetSpeedDisplay" 
           :directionClass="directionClass" 
         />
-
         <hr class="separator" />
-
         <TimerComponent 
           :time="formattedTime"
-          :phase="phaseCounter"
-          :running="running"
-          :message="message"
-          :showMessage="showMessage"
           @start="start"
           @stop="stop"
           @reset="reset"
           @pause="pause"
           @resume="resume"
-          @closeMessage="showMessage = false"
-
         />
-
-        <MessageComponent :message="message" />
-
+        <MessageComponent 
+          :message="message" 
+          :showMessage="showMessage"
+          @closeMessage="showMessage = false"
+        />
       </div>
     </div>
   </div>
@@ -65,7 +54,6 @@ export default {
       directionClass: '',
       showMessage: false,
       message: ''
-     
     };
   },
   computed: {
@@ -76,7 +64,6 @@ export default {
     }
   },
   mounted() {
-    // Holt GPS-Daten vom Backend alle 1 Sekunde
     setInterval(() => {
       fetch('http://localhost:3000/api/gps/status')
         .then(res => res.json())
@@ -86,7 +73,7 @@ export default {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
 
-            const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
+            const target = 20;
             this.targetSpeedDisplay = `${target} km/h`;
 
             this.directionArrow =
@@ -118,11 +105,6 @@ export default {
           this.stop();
           return;
         }
-
-        if (this.time % 30 === 0 && this.phaseCounter > 0) {
-          this.phaseCounter--;
-        }
-
         this.time--;
       }, 1000);
     },
@@ -150,6 +132,7 @@ export default {
         this.paused = true;
         this.running = false;
         this.message = '⏸️ Pausiert';
+        this.showMessage = true;
       }
     },
 
@@ -157,17 +140,14 @@ export default {
       if (this.paused) {
         this.running = true;
         this.paused = false;
-        this.message = '';
 
         this.timerInterval = setInterval(() => {
           if (this.time <= 0) {
             this.message = 'You made it Jörg! 🎉🛵';
+            this.showMessage = true;
             this.stop();
             return;
           }
-
-      
-
           this.time--;
         }, 1000);
       }
@@ -177,5 +157,5 @@ export default {
 </script>
 
 <style scoped>
-/* optionales Styling, falls du was anpassen willst */
+/* optionales Styling */
 </style>

@@ -87,8 +87,8 @@ export default {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
 
-            const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
-            this.targetSpeedDisplay = `${target}`;
+           // const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
+           // this.targetSpeedDisplay = `${target}`;
 
           }
         });
@@ -102,7 +102,7 @@ export default {
           this.targetSpeedUpper = target.upper;
         }
       });
-    }, 1000);
+    }, 400);
   },
   methods: {
     start() {

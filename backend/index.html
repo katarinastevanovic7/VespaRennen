@@ -59,10 +59,11 @@
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-
-  <script>
+<script> 
+  (function(){
+"use strict";
     // Karte initialisieren (mit Default View, wird später durch Standort überschrieben)
-   const map = L.map('map').setView([47.7, 9.0], 17); 
+   const map = L.map('map').setView([47.7, 9.0], 17);
  const satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
   maxZoom: 19,
   attribution: 'Tiles © Esri'
@@ -74,7 +75,6 @@ const labels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/servic
 });
 
 L.layerGroup([satellite, labels]).addTo(map);
-
 
     // Beim Laden einmal aktuellen Standort holen und Karte dahin zentrieren
     if (navigator.geolocation) {
@@ -111,33 +111,50 @@ L.layerGroup([satellite, labels]).addTo(map);
 
     let distanceToGoal = null;
     let distanceCovered = 0;
+    let finalDistance = null;
 
-    let countdownDuration = 5 * 60 * 1000; // 5 Minuten in ms
+    const COUNTDOWN_TOTAL = 5 * 60 * 1000; // 5 Minuten in ms
+    let countdownRemaining = COUNTDOWN_TOTAL;
     let countdownStart = null;
     let countdownInterval = null;
+    let pauseTime = null;
+    let totalPausedTime = 0;
 
     let averageSpeed = 0; // m/s
-let lapCountEstimate = 0;
-let suggestedSpeedLower = null;
-let suggestedSpeedUpper = null;
+    let suggestedSpeedLower = null;
+    let suggestedSpeedUpper = null;
+    let firstPositionSet = false;
+    let firstTrackingTime = null;
 
+    let totalDistanceTravelled = 0;
+    let prevAlong = null;
+    let lapsCompleted = 0;
 
-    const infoBox = document.getElementById("infoBox");
-    const toggleBtn = document.getElementById("toggleBtn");
+    let totalDistance = 0;
 
-    // Timer Anzeige in infoBox separat updaten
+    let speedSamples = [];
+    let smoothedSpeed = null;
+    const SMOOTHING_FACTOR = 0.2; // Einfluss der aktuellen Geschwindigkeit
+    const MAX_SPEED = 70 / 3.6; // 70 km/h in m/s
+
+    function centerMap(lat, lng, zoom = null) {
+      map.setView([lat, lng], zoom || map.getZoom());
+    }
+
+    function getMarkerColor(index) {
+      return index === 0 ? 'magenta' : 'blue';
+    }
+
     function formatTime(ms) {
       const totalSeconds = Math.floor(ms / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       const milliseconds = ms % 1000;
-
       return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
     }
 
     function updateInfoBoxTime(remainingMs) {
       const timeStr = formatTime(Math.max(remainingMs, 0));
-      // Timer immer als letzte Zeile hinzufügen
       infoBox.innerHTML = infoBox.innerHTML.replace(/⏳ Timer: .*$/m, `⏳ Timer: ${timeStr}`);
     }
 
@@ -146,89 +163,117 @@ let suggestedSpeedUpper = null;
       if (countdownInterval) clearInterval(countdownInterval);
       countdownInterval = setInterval(() => {
         const elapsed = Date.now() - countdownStart;
-        const remaining = countdownDuration - elapsed;
-
+        const remaining = countdownRemaining - elapsed;
         if (remaining <= 0) {
           clearInterval(countdownInterval);
+          countdownRemaining = 0;
           updateInfoBoxTime(0);
+          finishRun();
         } else {
           updateInfoBoxTime(remaining);
         }
       }, 50);
     }
 
-    // InfoBox mit allen Werten aktualisieren (außer Timer, der läuft separat)
     function updateInfoBox() {
-  let timeText = "⏱️ Letztes Update: –";
-  let speedText = "🚀 Geschwindigkeit: –";
-  let restDistText = "📏 Reststrecke: –";
-  let coveredDistText = "✅ Zurückgelegt: –";
-  let totalDistText = "🧭 Gesamtstrecke: –";
-  let avgSpeedText = "📈 Ø-Tempo: –";
-  let suggSpeedText = "🎯 Ziel: – / –";
+      let timeText = "⏱️ Letztes Update: –";
+      let speedText = "🚀 Geschwindigkeit: –";
+      let restDistText = "📏 Reststrecke: –";
+      let coveredDistText = "✅ Zurückgelegt: –";
+      let totalDistText = "🧭 Gesamtstrecke: –";
+      let avgSpeedText = "📈 Ø-Tempo: –";
+      let suggSpeedText = "🌟 Ziel: – / –";
 
-  if (lastUpdateTime) {
-    const delta = Date.now() - lastUpdateTime;
-    timeText = `⏱️ Letztes Update: ${(delta / 1000).toFixed(2)} s`;
-  }
-  if (currentSpeed !== null) {
-    const kmh = (currentSpeed * 3.6).toFixed(1);
-    speedText = `🚀 Geschwindigkeit: ${kmh} km/h`;
-  }
-  if (distanceToGoal !== null) {
-    restDistText = `📏 Reststrecke: ${distanceToGoal.toFixed(1)} m`;
-  }
-  if (distanceCovered !== null) {
-    coveredDistText = `✅ Zurückgelegt: ${distanceCovered.toFixed(1)} m`;
-  }
-  if (typeof totalDistance === "number") {
-    totalDistText = `🧭 Gesamtstrecke: ${totalDistance.toFixed(1)} m`;
-  }
+      if (lastUpdateTime) {
+        let delta = Date.now() - lastUpdateTime;
+        if (gpsPaused && pauseTime) {
+          delta -= Date.now() - pauseTime;
+        }
+        timeText = `⏱️ Letztes Update: ${(delta / 1000).toFixed(2)} s`;
+      }
+      if (currentSpeed !== null) {
+        const kmh = (currentSpeed * 3.6).toFixed(1);
+        speedText = `🚀 Geschwindigkeit: ${kmh} km/h`;
+      }
+      if (distanceToGoal !== null) {
+        restDistText = `📏 Reststrecke: ${distanceToGoal.toFixed(1)} m`;
+      }
+      if (distanceCovered !== null) {
+        coveredDistText = `✅ Zurückgelegt: ${distanceCovered.toFixed(1)} m`;
+      }
+      if (typeof totalDistance === "number") {
+        totalDistText = `🧭 Gesamtstrecke: ${totalDistance.toFixed(1)} m`;
+      }
+      if (averageSpeed > 0) {
+        const kmh = (averageSpeed * 3.6).toFixed(1);
+        avgSpeedText = `📈 Ø-Tempo: ${kmh} km/h`;
+      }
 
-  const elapsed = countdownStart ? (Date.now() - countdownStart) / 1000 : 0;
-  if (elapsed > 0 && distanceCovered > 0) {
-    averageSpeed = distanceCovered / elapsed; // m/s
-    const kmh = (averageSpeed * 3.6).toFixed(1);
-    avgSpeedText = `📈 Ø-Tempo: ${kmh} km/h`;
+      if (firstTrackingTime && distanceCovered > 0) {
+        const paused = totalPausedTime + (gpsPaused && pauseTime ? Date.now() - pauseTime : 0);
+        const elapsedSec = (Date.now() - firstTrackingTime - paused) / 1000;
+        if (elapsedSec > 0) {
+          averageSpeed = distanceCovered / elapsedSec;
+        }
 
-    const remainingTime = (countdownDuration - (Date.now() - countdownStart)) / 1000;
-    const lapLength = totalDistance;
-    if (lapLength > 0 && remainingTime > 0) {
-      lapCountEstimate = (averageSpeed * remainingTime) / lapLength;
+        let remainingTime = countdownRemaining;
+        if (countdownStart !== null) {
+          remainingTime = countdownRemaining - (Date.now() - countdownStart);
+        }
+        remainingTime /= 1000;
 
-      const lowerTarget = Math.floor(lapCountEstimate);
-      const upperTarget = lowerTarget + 1;
+        const lapLength = totalDistance;
+        const baseCandidate = smoothedSpeed !== null
+          ? 0.7 * smoothedSpeed + 0.3 * averageSpeed
+          : (averageSpeed || 0);
+        const baseline = baseCandidate > 0 ? baseCandidate : 0;
+        if (remainingTime > 0 && lapLength > 0 && baseline > 0) {
+          const predictedLaps = (distanceCovered + baseline * remainingTime) / lapLength;
+          let lowerTarget = Math.floor(predictedLaps);
+          if (lowerTarget < lapsCompleted) lowerTarget = lapsCompleted;
+          const upperTarget = lowerTarget + 1;
 
-      const speedLower = (lapLength * lowerTarget) / remainingTime;
-      const speedUpper = (lapLength * upperTarget) / remainingTime;
+          let speedLower = (lowerTarget * lapLength - distanceCovered) / remainingTime;
+          let speedUpper = (upperTarget * lapLength - distanceCovered) / remainingTime;
 
-      suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
-      suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
+          if (currentSpeed && speedLower >= currentSpeed) speedLower = currentSpeed * 0.9;
+          if (currentSpeed && speedUpper <= currentSpeed) speedUpper = currentSpeed * 1.1;
 
-      suggSpeedText = `🎯 Ziel: ${suggestedSpeedLower} ↓ / ${suggestedSpeedUpper} ↑ km/h`;
+          const validLower = speedLower > 0 && speedLower <= MAX_SPEED;
+          const validUpper = speedUpper > 0 && speedUpper <= MAX_SPEED;
+
+          const lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
+          const lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
+
+          if (validLower && validUpper) {
+            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+            suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} ↓ (${lapsLower.toFixed(1)} R) / ${suggestedSpeedUpper} ↑ (${lapsUpper.toFixed(1)} R) km/h`;
+          } else if (validLower) {
+            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+            suggestedSpeedUpper = null;
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsLower.toFixed(1)} R)`;
+          } else if (validUpper) {
+            suggestedSpeedLower = (speedUpper * 3.6).toFixed(1);
+            suggestedSpeedUpper = null;
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsUpper.toFixed(1)} R)`;
+          }
+        }
+      }
+
+      const timerLine = infoBox.innerHTML.match(/⏳ Timer: .*/);
+      infoBox.innerHTML = `${timeText}<br>${speedText}<br>${avgSpeedText}<br>${restDistText}<br>${coveredDistText}<br>${totalDistText}<br>${suggSpeedText}<br>` + (timerLine ? timerLine[0] : `⏳ Timer: 05:00.000`);
     }
-  }
 
-  const timerLine = infoBox.innerHTML.match(/⏳ Timer: .*/);
-  infoBox.innerHTML = `${timeText}<br>${speedText}<br>${avgSpeedText}<br>${restDistText}<br>${coveredDistText}<br>${totalDistText}<br>${suggSpeedText}<br>` + (timerLine ? timerLine[0] : `⏳ Timer: 05:00.000`);
-}
-
-
-    // Update InfoBox regelmäßig
     setInterval(updateInfoBox, 200);
 
-    // Strecke zeichnen und Punkte setzen
     map.on('click', function(e) {
-      if (trackingStarted) return; // Keine Punkte während Tracking setzen
-
+      if (trackingStarted) return;
       const latlng = [e.latlng.lat, e.latlng.lng];
       routePoints.push(latlng);
-
-      // Erster Punkt magenta, alle anderen blau
-      const markerColor = routePoints.length === 1 ? 'magenta' : 'blue';
+      const markerColor = getMarkerColor(routePoints.length - 1);
       const marker = L.circleMarker(latlng, { radius: 5, color: markerColor }).addTo(map);
       pointMarkers.push(marker);
-
       updateDistance();
       drawPolyline();
     });
@@ -251,69 +296,76 @@ let suggestedSpeedUpper = null;
       }
     }
 
-    // "Zurück"-Button - letzter Punkt löschen
-    document.getElementById("backBtn").addEventListener("click", () => {
+    backBtn.addEventListener("click", () => {
       if (trackingStarted || routePoints.length === 0) return;
-
       routePoints.pop();
       const lastMarker = pointMarkers.pop();
       if (lastMarker) map.removeLayer(lastMarker);
-
       updateDistance();
       drawPolyline();
     });
 
-    // "Start Tracking"-Button
-    document.getElementById("startBtn").addEventListener("click", () => {
+    startBtn.addEventListener("click", () => {
       if (routePoints.length < 2) {
         alert("Bitte zuerst eine Strecke zeichnen!");
         return;
       }
-
-      // Strecke schließen (Start = Ziel), falls noch nicht
       if (!routePoints[0].every((val, index) => val === routePoints[routePoints.length - 1][index])) {
         routePoints.push(routePoints[0]);
       }
-
       updateDistance();
       drawPolyline();
-
       trackingStarted = true;
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("backBtn").disabled = true;
+      startBtn.disabled = true;
+      backBtn.disabled = true;
 
       turfLine = turf.lineString(routePoints.map(p => [p[1], p[0]]));
-
+      firstPositionSet = false;
+      speedSamples = [];
       distanceCovered = 0;
       distanceToGoal = totalDistance;
+      totalDistanceTravelled = 0;
+      prevAlong = null;
+      lapsCompleted = 0;
+      countdownRemaining = COUNTDOWN_TOTAL;
+      totalPausedTime = 0;
+      pauseTime = null;
 
       startLiveGPS();
-      startCountdown();
     });
 
-    // Umschaltbutton Pause / Weiter
     toggleBtn.addEventListener("click", () => {
       if (!trackingStarted) return;
-
       if (!gpsPaused) {
-        // pausieren
         if (gpsWatcher !== null) {
           navigator.geolocation.clearWatch(gpsWatcher);
           gpsWatcher = null;
         }
+        if (countdownInterval) {
+          countdownRemaining = Math.max(countdownRemaining - (Date.now() - countdownStart), 0);
+          clearInterval(countdownInterval);
+          countdownStart = null;
+          updateInfoBoxTime(countdownRemaining);
+        }
+        pauseTime = Date.now();
         gpsPaused = true;
         toggleBtn.innerText = "▶️ Weiter";
         toggleBtn.style.backgroundColor = "green";
       } else {
-        // weiter
+        if (pauseTime !== null) {
+          const pauseDelta = Date.now() - pauseTime;
+          lastUpdateTime += pauseDelta;
+          totalPausedTime += pauseDelta;
+          pauseTime = null;
+        }
         startLiveGPS();
         gpsPaused = false;
+        startCountdown();
         toggleBtn.innerText = "⏸️ Pause";
         toggleBtn.style.backgroundColor = "orange";
       }
     });
 
-    // GPS Live Tracking
     function startLiveGPS() {
       if (!navigator.geolocation) {
         alert("GPS wird nicht unterstützt.");
@@ -321,65 +373,7 @@ let suggestedSpeedUpper = null;
       }
 
       gpsWatcher = navigator.geolocation.watchPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const speed = pos.coords.speed;
-
-          lastUpdateTime = Date.now();
-          currentSpeed = speed !== null ? speed : null;
-
-          const currentPoint = turf.point([lng, lat]);
-          const snapped = turf.nearestPointOnLine(turfLine, currentPoint);
-
-          const snappedLatLng = [snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]];
-
-          // Entferne bisherige rote Marker
-          pointMarkers.forEach(m => {
-            if (m.options.color === 'red') map.removeLayer(m);
-          });
-
-          // Neuen roten Marker setzen (nächster Punkt auf Strecke)
-          const redMarker = L.circleMarker(snappedLatLng, { color: 'red', radius: 6 }).addTo(map);
-          pointMarkers.push(redMarker);
-
-          // Gelben Marker für aktuelle GPS-Position setzen (klein)
-          const gpsMarker = L.circleMarker([lat, lng], { color: 'yellow', radius: 4 }).addTo(map);
-          pointMarkers.push(gpsMarker);
-
-          // Nächstgelegenen Index auf Strecke finden
-          let nearestIndex = 0;
-          let minDist = Infinity;
-          for (let i = 0; i < routePoints.length; i++) {
-            const pt = routePoints[i];
-            const dist = turf.distance(
-              turf.point([pt[1], pt[0]]),
-              turf.point([snapped.geometry.coordinates[0], snapped.geometry.coordinates[1]]),
-              { units: 'meters' }
-            );
-            if (dist < minDist) {
-              minDist = dist;
-              nearestIndex = i;
-            }
-          }
-
-          // Berechne Reststrecke von nächstem Punkt bis Start (Index 0) entlang der Strecke (geschlossen)
-          let remainingDist = 0;
-          const n = routePoints.length;
-          for (let i = nearestIndex; i != 0; i = (i + 1) % n) {
-            const current = turf.point([routePoints[i][1], routePoints[i][0]]);
-            const next = turf.point([routePoints[(i + 1) % n][1], routePoints[(i + 1) % n][0]]);
-            remainingDist += turf.distance(current, next, { units: 'meters' });
-          }
-          distanceToGoal = remainingDist;
-
-          // Berechne zurückgelegte Strecke (total - rest)
-          distanceCovered = totalDistance - distanceToGoal;
-
-          // Karte zentrieren
-          map.setView([lat, lng]);
-
-        },
+        onGpsPosition,
         err => {
           alert("GPS-Fehler: " + err.message);
         },
@@ -390,6 +384,93 @@ let suggestedSpeedUpper = null;
         }
       );
     }
-  </script>
+
+    function onGpsPosition(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const speed = pos.coords.speed;
+      const now = Date.now();
+
+      if (!firstPositionSet) {
+        countdownStart = now;
+        startCountdown();
+        firstTrackingTime = now;
+        firstPositionSet = true;
+      }
+
+      lastUpdateTime = now;
+      currentSpeed = (typeof speed === "number" && !isNaN(speed)) ? speed : null;
+
+      const currentPoint = turf.point([lng, lat]);
+      const snapped = turf.nearestPointOnLine(turfLine, currentPoint);
+      const snappedLatLng = [snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]];
+
+      if (currentSpeed !== null) {
+        speedSamples.push(currentSpeed);
+        if (smoothedSpeed === null) {
+          smoothedSpeed = currentSpeed;
+        } else {
+          smoothedSpeed = smoothedSpeed * (1 - SMOOTHING_FACTOR) + currentSpeed * SMOOTHING_FACTOR;
+        }
+      }
+      if (speedSamples.length > 0) {
+        const sum = speedSamples.reduce((a, b) => a + b, 0);
+        averageSpeed = sum / speedSamples.length;
+      } else {
+        averageSpeed = 0;
+      }
+
+      pointMarkers.forEach(m => {
+        if (m.options.color === 'red') map.removeLayer(m);
+      });
+
+      const redMarker = L.circleMarker(snappedLatLng, { color: 'red', radius: 6 }).addTo(map);
+      pointMarkers.push(redMarker);
+      const gpsMarker = L.circleMarker([lat, lng], { color: 'yellow', radius: 4 }).addTo(map);
+      pointMarkers.push(gpsMarker);
+
+      const distanceAlong = snapped.properties.location * 1000;
+
+      if (prevAlong !== null) {
+        let diff = distanceAlong - prevAlong;
+        if (diff < -totalDistance * 0.5) {
+          diff = (totalDistance - prevAlong) + distanceAlong;
+          lapsCompleted++;
+        }
+        if (diff > 0) {
+          totalDistanceTravelled += diff;
+        }
+      }
+      prevAlong = distanceAlong;
+
+      distanceCovered = totalDistanceTravelled;
+      distanceToGoal = Math.max((lapsCompleted + 1) * totalDistance - distanceCovered, 0);
+      centerMap(lat, lng);
+    }
+
+    function finishRun() {
+      if (!trackingStarted) return;
+      trackingStarted = false;
+      if (gpsWatcher !== null) {
+        navigator.geolocation.clearWatch(gpsWatcher);
+        gpsWatcher = null;
+      }
+
+      finalDistance = distanceToGoal;
+      toggleBtn.disabled = true;
+
+      if (finalDistance !== null) {
+        const totalLaps = distanceCovered / totalDistance;
+        const finalAvg = averageSpeed * 3.6;
+        const finalTime = (Date.now() - firstTrackingTime - totalPausedTime) / 1000;
+        infoBox.innerHTML += `<br>🏁 Zielabstand: ${finalDistance.toFixed(1)} m`;
+        infoBox.innerHTML += `<br>🔄 Gefahrene Runden: ${totalLaps.toFixed(2)}`;
+        infoBox.innerHTML += `<br>📈 Ø-Tempo: ${finalAvg.toFixed(1)} km/h`;
+        infoBox.innerHTML += `<br>⏲️ Zeit: ${finalTime.toFixed(1)} s`;
+        alert(`Abstand zur Ziellinie: ${finalDistance.toFixed(1)} m`);
+      }
+    }
+})();
+</script>
 </body>
 </html>

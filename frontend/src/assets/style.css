@@ -17,18 +17,18 @@ body {
     height: 100vh;
     padding: 1rem;
   }
-  
-  .speed-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 1rem;
-    gap: 1rem;
+  .speed-row {
+     display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end; /* ✅ Jetzt richten sich alle an der Unterkante aus */
+  margin-top: 1rem;
+  gap: 2rem;
   }
 
   /* Geschwindigkeit */
   .speed-display {
-    font-size: 120px;
+    font-size: 90px;
     font-weight: 400;
     color: #FFF8E1;
     display: flex;
@@ -37,31 +37,50 @@ body {
   }
 
   
-  .speed-display .unit {
+  .speed-display .unit{
     font-size: 24px;
     margin-left: 8px;
   }
   
   /* Zielgeschwindigkeit */
   .target-display {
-    font-size: 20px;
-    padding: 0.2rem 0;
-    margin-bottom: 0.3rem;
+   font-size: 90px;
+    font-weight: 400;
+    color: #FFF8E1;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.rem;
-  }
-  
+    align-items: baseline;
+    margin-bottom: 2.5rem;
+}
+
+.target-display .value {
+  font-size: 90px;
+  font-weight: 400;
+  color: inherit; /* übernimmt die Farbe von .target-display */
+}
+
+.target-display .unit {
+  font-size: 24px;
+  margin-left: 8px;
+  color: inherit; /* auch die Einheit wird eingefärbt */
+}
+
+/* Farbe über Klassen */
+.text-danger {
+  color: #ff4c4c;
+}
+
+.text-success {
+  color: #00cc66;
+}
   /* 🟨 Container für Timer + Buttons */
   .timer-container {
     background-color: #FFF8E1;
     color: black;
     border-radius: 50px;
-    width: 150%;
+    width: 100%;
     max-width: 500px;
     margin-top: auto;
-    margin-bottom: 1rem;
+    margin-bottom: auto;
     padding: 1.2rem;
     display: flex;
     flex-direction: column;
@@ -86,8 +105,9 @@ body {
     line-height: 1;
     position: absolute;
     top: 20px;
-  }
   
+  }
+
  
  
   
@@ -123,8 +143,9 @@ body {
   /* Stop + Reset nebeneinander */
   .stop-reset-row {
     display: flex;
-    gap: 1rem;
+    gap: 2rem;
     justify-content: center;
+    margin-bottom: 1rem;
   }
 
   /* Bootstrap-Button-Anpassungen */
@@ -133,6 +154,7 @@ body {
     color: black !important;
     margin-bottom: 1rem;
   }
+
   
   .btn-danger {
     background-color: #FB0000D9 !important;

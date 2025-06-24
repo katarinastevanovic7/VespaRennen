@@ -27,6 +27,24 @@ app.get('/api/gps/status', (req, res) => {
   res.json(latestData || {});
 });
 
+// POST: Zielgeschwindigkeiten empfangen
+app.post('/api/target-speed', (req, res) => {
+  const { lower, upper } = req.body;
+
+  // Nur die Zahlenwerte ausgeben
+  console.log('📥 Zielwerte empfangen:');
+  console.log('  Untere Zielgeschwindigkeit:', lower);
+  console.log('  Obere Zielgeschwindigkeit:', upper);
+
+  res.sendStatus(200);
+});
+
+// ⬅️ Diese GET-Route hinzufügen
+app.get('/api/target-speed', (req, res) => {
+  res.json(targetSpeed);
+});
+
+
 // HTTP-Server starten
 app.listen(port, () => {
   console.log(`✅ HTTP-Server läuft unter http://localhost:${port}`);

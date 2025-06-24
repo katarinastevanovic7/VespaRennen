@@ -211,6 +211,17 @@ let suggestedSpeedUpper = null;
       suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
 
       suggSpeedText = `🎯 Ziel: ${suggestedSpeedLower} ↓ / ${suggestedSpeedUpper} ↑ km/h`;
+
+      // Zielgeschwindigkeit an Backend senden
+fetch('http://localhost:3000/api/target-speed', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    lower: suggestedSpeedLower,
+    upper: suggestedSpeedUpper
+  })
+});
+
     }
   }
 

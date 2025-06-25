@@ -1,15 +1,21 @@
 <template>
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
-      <div class="speed-wrapper">
-        <SpeedComponent :speed="speedDisplay" />
-        <hr class="separator" />
-        <TargetSpeedComponent 
-          :arrow="directionArrow" 
-          :targetSpeed="targetSpeedDisplay" 
-          :directionClass="directionClass" 
+      <div class="speed-row">
+        <!--Zielgeschwindigkeit(langsam)-->
+        <TargetSpeedComponent
+          :targetSpeed="targetSpeedUpper"
+          directionClass="text-success"
         />
-        <hr class="separator" />
+        <!--Aktuelle Geschwindigkeit zentriert-->
+        <SpeedComponent :speed="speedDisplay" />
+        <!--Zielgeschwindigkeit(schnell)-->
+        <TargetSpeedComponent
+          :targetSpeed="targetSpeedLower"
+          directionClass="text-danger"
+        />
+      </div>
+
         <TimerComponent 
           :time="formattedTime"
           @start="start"
@@ -25,7 +31,7 @@
         />
       </div>
     </div>
-  </div>
+
 </template>
 
 <script>
@@ -53,7 +59,10 @@ export default {
       directionArrow: '',
       directionClass: '',
       showMessage: false,
-      message: ''
+      message: '',
+      targetSpeedLower: null,
+    targetSpeedUpper: null
+     
     };
   },
   computed: {
@@ -73,19 +82,22 @@ export default {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
 
-            const target = 20;
-            this.targetSpeedDisplay = `${target} km/h`;
+           // const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
+           // this.targetSpeedDisplay = `${target}`;
 
-            this.directionArrow =
-              speedKmh > target + 1 ? '↓' :
-              speedKmh < target - 1 ? '↑' : '•';
-
-            this.directionClass =
-              speedKmh > target + 1 ? 'text-danger' :
-              speedKmh < target - 1 ? 'text-success' : '';
           }
         });
-    }, 1000);
+        
+    // 🔽 Zielgeschwindigkeit vom Server holen
+    fetch('http://localhost:3000/api/target-speed')
+      .then(res => res.json())
+      .then(target => {
+        if (target.lower !== null && target.upper !== null) {
+          this.targetSpeedLower = target.lower;
+          this.targetSpeedUpper = target.upper;
+        }
+      });
+    }, 400);
   },
   methods: {
     start() {

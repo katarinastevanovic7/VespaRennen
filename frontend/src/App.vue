@@ -61,7 +61,9 @@ export default {
       showMessage: false,
       message: '',
       targetSpeedLower: null,
-    targetSpeedUpper: null
+    targetSpeedUpper: null,
+     lapsLower: null,
+    lapsUpper: null
      
     };
   },
@@ -87,18 +89,24 @@ export default {
 
           }
         });
-        
-    // 🔽 Zielgeschwindigkeit vom Server holen
-    fetch('http://localhost:3000/api/target-speed')
-      .then(res => res.json())
-      .then(target => {
-        if (target.lower !== null && target.upper !== null) {
-          this.targetSpeedLower = target.lower;
-          this.targetSpeedUpper = target.upper;
-        }
-      });
+
+            // Zielgeschwindigkeit und Laps vom Backend laden
+      fetch('http://localhost:3000/api/target-speed')
+        .then(res => res.json())
+        .then(target => {
+          if (target.lower && target.upper) {
+            this.targetSpeedLower = target.lower;
+            this.targetSpeedUpper = target.upper;
+          }
+          if (target.lapsLower && target.lapsUpper) {
+            this.lapsLower = target.lapsLower;
+            this.lapsUpper = target.lapsUpper;
+          }
+        });
     }, 400);
   },
+        
+  
   methods: {
     start() {
       this.message = '';

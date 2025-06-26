@@ -245,23 +245,21 @@ L.layerGroup([satellite, labels]).addTo(map);
           const lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
           const lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
 
-      suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
-      suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
-
-      suggSpeedText = `🎯 Ziel: ${suggestedSpeedLower} ↓ / ${suggestedSpeedUpper} ↑ km/h`;
-
-      // Zielgeschwindigkeit an Backend senden
-fetch('http://localhost:3000/api/target-speed', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    lower: suggestedSpeedLower,
-    upper: suggestedSpeedUpper
-  })
-});
-
-    }
-  }
+          if (validLower && validUpper) {
+            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+            suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} ↓ (${lapsLower.toFixed(1)} R) / ${suggestedSpeedUpper} ↑ (${lapsUpper.toFixed(1)} R) km/h`;
+          } else if (validLower) {
+            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+            suggestedSpeedUpper = null;
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsLower.toFixed(1)} R)`;
+          } else if (validUpper) {
+            suggestedSpeedLower = (speedUpper * 3.6).toFixed(1);
+            suggestedSpeedUpper = null;
+            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsUpper.toFixed(1)} R)`;
+          }
+        }
+      }
 
       const timerLine = infoBox.innerHTML.match(/⏳ Timer: .*/);
       infoBox.innerHTML = `${timeText}<br>${speedText}<br>${avgSpeedText}<br>${restDistText}<br>${coveredDistText}<br>${totalDistText}<br>${suggSpeedText}<br>` + (timerLine ? timerLine[0] : `⏳ Timer: 05:00.000`);

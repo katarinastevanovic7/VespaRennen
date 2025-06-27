@@ -11,7 +11,7 @@
     <div class="button-row">
       <button class="btn btn-warning" @click="$emit('start')" :disabled="running">Start</button>
       <div class="stop-reset-row">
-        <button class="btn btn-danger" @click="$emit('stop')" :disabled="!running">Stop</button>
+<button class="btn btn-danger" @click="$emit('stop')">Stop</button>
         <button class="btn btn-secondary" @click="$emit('reset')">Reset</button>
       </div>
     </div>

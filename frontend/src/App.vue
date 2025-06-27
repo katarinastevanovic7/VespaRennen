@@ -5,6 +5,7 @@
         <!--Zielgeschwindigkeit(langsam)-->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedUpper"
+          :laps="lapsUpper"
           directionClass="text-success"
         />
         <!--Aktuelle Geschwindigkeit zentriert-->
@@ -12,6 +13,7 @@
         <!--Zielgeschwindigkeit(schnell)-->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedLower"
+          :laps="lapsLower"
           directionClass="text-danger"
         />
       </div>
@@ -94,14 +96,18 @@ export default {
       fetch('http://localhost:3000/api/target-speed')
         .then(res => res.json())
         .then(target => {
-          if (target.lower && target.upper) {
+         if (target.lower !== undefined && target.upper !== undefined) {
             this.targetSpeedLower = target.lower;
             this.targetSpeedUpper = target.upper;
+            console.log("🎯 targetspeed vom Server:", target.lapsLower, target.lapsUpper);
           }
-          if (target.lapsLower && target.lapsUpper) {
-            this.lapsLower = target.lapsLower;
-            this.lapsUpper = target.lapsUpper;
-          }
+      if (target.lapsLower !== undefined && target.lapsUpper !== undefined) {
+  this.lapsLower = target.lapsLower;
+  this.lapsUpper = target.lapsUpper;
+  console.log("🎯 Laps vom Server:", target.lapsLower, target.lapsUpper);
+}
+            
+          
         });
     }, 400);
   },

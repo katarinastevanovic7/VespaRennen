@@ -125,6 +125,8 @@ L.layerGroup([satellite, labels]).addTo(map);
     let suggestedSpeedUpper = null;
     let firstPositionSet = false;
     let firstTrackingTime = null;
+    let lapsLower = null;
+    let lapsUpper = null;
 
     let totalDistanceTravelled = 0;
     let prevAlong = null;
@@ -242,8 +244,8 @@ L.layerGroup([satellite, labels]).addTo(map);
           const validLower = speedLower > 0 && speedLower <= MAX_SPEED;
           const validUpper = speedUpper > 0 && speedUpper <= MAX_SPEED;
 
-          const lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
-          const lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
+          lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
+          lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
 
           if (validLower && validUpper) {
             suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
@@ -257,6 +259,19 @@ L.layerGroup([satellite, labels]).addTo(map);
             suggestedSpeedLower = (speedUpper * 3.6).toFixed(1);
             suggestedSpeedUpper = null;
             suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsUpper.toFixed(1)} R)`;
+
+// Zielgeschwindigkeit und Runden an Backend senden
+fetch('http://localhost:3000/api/target-speed', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    lower: suggestedSpeedLower,
+    upper: suggestedSpeedUpper,
+    lapsLower: lapsLower,
+    lapsUpper: lapsUpper
+  })
+});
+
           }
         }
       }
@@ -400,6 +415,17 @@ L.layerGroup([satellite, labels]).addTo(map);
 
       lastUpdateTime = now;
       currentSpeed = (typeof speed === "number" && !isNaN(speed)) ? speed : null;
+
+      fetch('http://localhost:3000/api/gps/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+          speed: currentSpeed,
+          distance: distanceCovered,
+          timestamp: Date.now()
+           })
+          });
+
 
       const currentPoint = turf.point([lng, lat]);
       const snapped = turf.nearestPointOnLine(turfLine, currentPoint);

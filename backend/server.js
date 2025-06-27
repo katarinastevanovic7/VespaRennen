@@ -7,7 +7,12 @@ const port = 3000;
 
 let latestData = null; // ⬅️ Speicher für GPS-Daten
 
-let targetSpeed = { lower: 0, upper: 0 }; //Speicher für Zielgeschwindkeit
+let targetSpeed = { lower: 0,
+  upper: 0,
+  lapsLower: 0,   // 🆕 hinzufügen!
+  lapsUpper: 0    // 🆕 hinzufügen!
+};
+ //Speicher für Zielgeschwindkeit
 
 
 app.use(cors());               // optional, aber nützlich für Vue
@@ -32,16 +37,21 @@ app.get('/api/gps/status', (req, res) => {
 
 // POST: Zielgeschwindigkeiten empfangen
 app.post('/api/target-speed', (req, res) => {
-  const { lower, upper } = req.body;
+  const { lower, upper, lapsLower, lapsUpper } = req.body;
+
 
   // Nur die Zahlenwerte ausgeben
   console.log('📥 Zielwerte empfangen:');
   console.log('  Untere Zielgeschwindigkeit:', lower);
   console.log('  Obere Zielgeschwindigkeit:', upper);
+  console.log('  Runden-Ziel unten:', lapsLower);
+  console.log('  Runden-Ziel oben:', lapsUpper);
 
    // ➕ Werte im Speicher aktualisieren!
   targetSpeed.lower = lower;
   targetSpeed.upper = upper;
+  targetSpeed.lapsLower = lapsLower;   // 🆕 speichern!
+  targetSpeed.lapsUpper = lapsUpper;   // 🆕
 
   res.sendStatus(200);
 });

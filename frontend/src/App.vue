@@ -2,41 +2,45 @@
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
       <div class="speed-row">
-        <!--Zielgeschwindigkeit(langsam)-->
+        <!-- Zielgeschwindigkeit (langsam) -->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedUpper"
           directionClass="text-success"
         />
-        <!--Aktuelle Geschwindigkeit zentriert-->
+        <!-- Aktuelle Geschwindigkeit -->
         <SpeedComponent :speed="speedDisplay" />
-        <!--Zielgeschwindigkeit(schnell)-->
+        <!-- Zielgeschwindigkeit (schnell) -->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedLower"
           directionClass="text-danger"
         />
       </div>
 
-        <TimerComponent 
-          :time="formattedTime"
-          :phase="phaseCounter"
-          :running="running"
-          :message="message"
-          :showMessage="showMessage"
-          @start="start"
-          @stop="stop"
-          @reset="reset"
-          @pause="pause"
-          @resume="resume"
-          @closeMessage="showMessage = false"
+      <!-- Timer -->
+      <TimerComponent 
+        :time="formattedTime"
+        :phase="phaseCounter"
+        :running="running"
+        :message="message"
+        :showMessage="showMessage"
+        @start="start"
+        @stop="stop"
+        @reset="reset"
+        @pause="pause"
+        @resume="resume"
+        @closeMessage="showMessage = false"
+      />
 
-        />
+      <MessageComponent :message="message" :show="showMessage" @closeMessage="showMessage = false" />
 
-        <MessageComponent :message="message" :show="showMessage" @closeMessage="showMessage = false" />
-
-
+      <!-- GPS-Debug-Ausgabe für Handytest -->
+      <div class="mt-4" style="color: white;">
+        <p>📍 Latitude: <span id="lat">?</span></p>
+        <p>📍 Longitude: <span id="lon">?</span></p>
+        <p>🚀 Native Speed (m/s): <span id="nativeSpeed">?</span></p>
       </div>
     </div>
-
+  </div>
 </template>
 
 <script>
@@ -68,8 +72,7 @@ export default {
       phaseCounter: 5,
       gpsStarted: false,
       targetSpeedLower: null,
-    targetSpeedUpper: null
-     
+      targetSpeedUpper: null
     };
   },
   computed: {
@@ -77,11 +80,10 @@ export default {
       const minutes = Math.floor(this.time / 60).toString().padStart(2, '0');
       const seconds = (this.time % 60).toString().padStart(2, '0');
       return `${minutes}:${seconds}`;
-
     }
   },
   mounted() {
-    // Holt GPS-Daten vom Backend alle 1 Sekunde
+    // Backend-GPS-Daten holen
     setInterval(() => {
       fetch('http://localhost:3000/api/gps/status')
         .then(res => res.json())
@@ -90,76 +92,77 @@ export default {
           if (data.speed !== undefined) {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
-
-           // const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
-           // this.targetSpeedDisplay = ${target};
-
           }
         });
-        
-    // 🔽 Zielgeschwindigkeit vom Server holen
-    fetch('http://localhost:3000/api/target-speed')
-      .then(res => res.json())
-      .then(target => {
-        if (target.lower !== null && target.upper !== null) {
-          this.targetSpeedLower = target.lower;
-          this.targetSpeedUpper = target.upper;
-        }
-      });
+
+      // Zielgeschwindigkeit vom Server holen
+      fetch('http://localhost:3000/api/target-speed')
+        .then(res => res.json())
+        .then(target => {
+          if (target.lower !== null && target.upper !== null) {
+            this.targetSpeedLower = target.lower;
+            this.targetSpeedUpper = target.upper;
+          }
+        });
     }, 400);
+
+    // Native GPS-Daten direkt vom Handy anzeigen (zum Testen)
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        document.getElementById("lat").textContent = pos.coords.latitude.toFixed(6);
+        document.getElementById("lon").textContent = pos.coords.longitude.toFixed(6);
+        document.getElementById("nativeSpeed").textContent = (pos.coords.speed || 0).toFixed(2);
+      },
+      (err) => {
+        console.error("⚠️ GPS-Fehler", err);
+      },
+      { enableHighAccuracy: true }
+    );
   },
   methods: {
-   start() {
-    // Falls der Timer läuft und nicht pausiert ist, nichts tun
-    if (this.running && !this.paused) return;
+    start() {
+      if (this.running && !this.paused) return;
+      this.message = '';
+      this.showMessage = false;
 
-    this.message = '';
-    this.showMessage = false;
-
-    // Wenn pausiert, dann fortsetzen
-    if (this.paused) {
-      this.resume();
-      return;
-    }
-
-    // ⭐ GPS-Daten nur einmal starten
-    if (!this.gpsStarted) {
-      startGps();
-      this.gpsStarted = true;
-    }
-
-    // 10 Sekunden Countdown als Puffer
-    this.time = 10;
-    this.running = true;
-
-    let bufferCountdown = setInterval(() => {
-      this.time--;
-      if (this.time <= 0) {
-        clearInterval(bufferCountdown);
-
-        // Nach 10 Sekunden startet der Haupt-Timer (5 Minuten)
-        this.time = 300;
-        this.phaseCounter = 5;
-
-        this.timerInterval = setInterval(() => {
-          if (this.time <= 0) {
-            this.message = 'You made it Jörg! 🎉🛵';
-            this.showMessage = true;
-            this.stop();
-            return;
-          }
-
-          if (this.time % 30 === 0 && this.phaseCounter > 0) {
-            this.phaseCounter--;
-          }
-
-          this.time--;
-        }, 1000);
+      if (this.paused) {
+        this.resume();
+        return;
       }
-    }, 1000);
-  },
 
+      if (!this.gpsStarted) {
+        startGps();
+        this.gpsStarted = true;
+      }
 
+      this.time = 10;
+      this.running = true;
+
+      let bufferCountdown = setInterval(() => {
+        this.time--;
+        if (this.time <= 0) {
+          clearInterval(bufferCountdown);
+
+          this.time = 300;
+          this.phaseCounter = 5;
+
+          this.timerInterval = setInterval(() => {
+            if (this.time <= 0) {
+              this.message = 'You made it Jörg! 🎉🛵';
+              this.showMessage = true;
+              this.stop();
+              return;
+            }
+
+            if (this.time % 30 === 0 && this.phaseCounter > 0) {
+              this.phaseCounter--;
+            }
+
+            this.time--;
+          }, 1000);
+        }
+      }, 1000);
+    },
 
     stop() {
       clearInterval(this.timerInterval);
@@ -207,12 +210,11 @@ export default {
           this.time--;
         }, 1000);
       }
-}
-
+    }
   }
 };
 </script>
 
 <style scoped>
-/* optionales Styling, falls du was anpassen willst */
+/* Optional: weitere Styles */
 </style>

@@ -2,10 +2,11 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { updateFromFrontend } = require('./gpsProcessor');
+const { updateFromFrontend, updateDistanceAndAvgSpeed } = require('./gpsProcessor');
+const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -23,7 +24,6 @@ app.post('/api/gps/update', (req, res) => {
   const { latitude, longitude, speed } = req.body;
   const timestamp = Date.now();
 
-  // Distanz und Ø-Geschwindigkeit berechnen
   const result = updateDistanceAndAvgSpeed(
     latitude,
     longitude,
@@ -44,7 +44,6 @@ app.post('/api/gps/update', (req, res) => {
     avgSpeed: result.avgSpeed
   };
 
-
   console.log("📥 Empfangen:", latestGps);
   res.sendStatus(200);
 });
@@ -60,6 +59,13 @@ app.get('/api/gps/status', (req, res) => {
 app.get('/api/target-speed', (req, res) => {
   const result = updateFromFrontend({ speed: latestGps.speed });
   res.json(result || { lower: null, upper: null });
+});
+
+// ==== NEU: Statisches Vue-Frontend ausliefern ====
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 app.listen(PORT, () => {

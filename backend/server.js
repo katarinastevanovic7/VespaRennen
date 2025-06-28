@@ -1,65 +1,59 @@
 // server.js
 const express = require('express');
+const path = require('path');
 const WebSocket = require('ws');
-const cors = require('cors'); // falls Frontend auf anderem Port läuft
+const cors = require('cors');
+const gpsLogic = require('./gpsProcessor');
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-let latestData = null; // ⬅️ Speicher für GPS-Daten
+let latestData = null;
+let targetSpeed = { lower: 0, upper: 0 };
 
-let targetSpeed = { lower: 0, upper: 0 }; //Speicher für Zielgeschwindkeit
+app.use(cors());
+app.use(express.json());
 
-
-app.use(cors());               // optional, aber nützlich für Vue
-app.use(express.json());       // damit JSON im Body geparst wird
-
-// Test-Endpunkt
-app.get('/', (req, res) => {
-  res.send('Backend läuft!');
-});
-
-// POST: GPS-Daten empfangen und speichern
+// GPS-Daten empfangen
 app.post('/api/gps/update', (req, res) => {
   latestData = req.body;
-  console.log('📡 Neue GPS-Daten empfangen:', latestData);
+  console.log('Neue GPS-Daten empfangen:', latestData);
+
+  const result = gpsLogic.updateFromFrontend(latestData);
+  if (result) {
+    targetSpeed.lower = result.lower;
+    targetSpeed.upper = result.upper;
+    console.log(`Zielgeschwindigkeit: ${targetSpeed.lower} ↓ / ${targetSpeed.upper} ↑ km/h`);
+  }
+
   res.sendStatus(200);
 });
 
-// GET: GPS-Daten abfragen
+// GPS-Daten abrufen
 app.get('/api/gps/status', (req, res) => {
   res.json(latestData || {});
 });
 
-// POST: Zielgeschwindigkeiten empfangen
-app.post('/api/target-speed', (req, res) => {
-  const { lower, upper } = req.body;
-
-  // Nur die Zahlenwerte ausgeben
-  console.log('📥 Zielwerte empfangen:');
-  console.log('  Untere Zielgeschwindigkeit:', lower);
-  console.log('  Obere Zielgeschwindigkeit:', upper);
-
-   // ➕ Werte im Speicher aktualisieren!
-  targetSpeed.lower = lower;
-  targetSpeed.upper = upper;
-
-  res.sendStatus(200);
-});
-
-// ⬅️ Diese GET-Route hinzufügen
+// Zielgeschwindigkeit abrufen
 app.get('/api/target-speed', (req, res) => {
   res.json(targetSpeed);
 });
 
+// Statisches Vue-Frontend ausliefern
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
+// Alle anderen Routen auf index.html umleiten
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
+});
 
 // HTTP-Server starten
 app.listen(port, () => {
-  console.log(`✅ HTTP-Server läuft unter http://localhost:${port}`);
+  console.log(`Server läuft unter http://localhost:${port}`);
 });
 
-// WebSocket-Server auf Port 8080 (optional, du kannst ihn lassen)
+// WebSocket-Server (optional)
 const wss = new WebSocket.Server({ port: 8080 });
 wss.on('connection', (ws) => {
-  console.log('🌐 WebSocket: Frontend verbunden');
-  
+  console.log('WebSocket: Frontend verbunden');
 });

@@ -20,34 +20,20 @@ let latestGps = {
   avgSpeed: 0
 };
 
+// 📡 GPS-Daten vom Frontend empfangen
 app.post('/api/gps/update', (req, res) => {
   const { latitude, longitude, speed } = req.body;
-  const timestamp = Date.now();
 
-  const result = updateDistanceAndAvgSpeed(
-    latitude,
-    longitude,
-    speed,
-    latestGps.latitude,
-    latestGps.longitude,
-    latestGps.timestamp,
-    latestGps.totalDistance,
-    timestamp
-  );
-
-  latestGps = {
-    latitude,
-    longitude,
-    speed,
-    timestamp,
-    totalDistance: result.totalDistance,
-    avgSpeed: result.avgSpeed
-  };
+  latestGps.latitude = latitude;
+  latestGps.longitude = longitude;
+  latestGps.speed = speed;
+  latestGps.timestamp = Date.now();
 
   console.log("📥 Empfangen:", latestGps);
   res.sendStatus(200);
 });
 
+// 🛰️ Aktuellen GPS-Status senden
 app.get('/api/gps/status', (req, res) => {
   res.json({
     speed: latestGps.speed,
@@ -56,8 +42,13 @@ app.get('/api/gps/status', (req, res) => {
   });
 });
 
+// 🎯 Zielgeschwindigkeit berechnen
 app.get('/api/target-speed', (req, res) => {
-  const result = updateFromFrontend({ speed: latestGps.speed });
+  const result = updateFromFrontend({
+    latitude: latestGps.latitude,
+    longitude: latestGps.longitude,
+    speed: latestGps.speed
+  });
   res.json(result || { lower: null, upper: null });
 });
 
@@ -69,6 +60,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
+// 🚀 Server starten
 app.listen(PORT, () => {
   console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
 });

@@ -39,12 +39,12 @@ app.get('/api/target-speed', (req, res) => {
   res.json(targetSpeed);
 });
 
-// Statisches Vue-Frontend ausliefern
-app.use(express.static(path.join(__dirname, 'frontend/dist')));
+// Statisches Vue-Frontend ausliefern (korrekter Pfad aus backend/)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Alle anderen Routen auf index.html umleiten
+// Alle anderen Routen auf index.html umleiten (korrekter Pfad)
 app.get(/^\/(?!api\/).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
 // HTTP-Server starten

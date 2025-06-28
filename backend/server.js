@@ -1,8 +1,9 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { updateFromFrontend, updateDistanceAndAvgSpeed } = require('./gpsProcessor');
 const path = require('path');
+const { updateFromFrontend, updateDistanceAndAvgSpeed } = require('./gpsProcessor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Live-GPS-Daten
+// GPS-Daten-Status
 let latestGps = {
   latitude: null,
   longitude: null,
@@ -57,16 +58,23 @@ app.get('/api/gps/status', (req, res) => {
 });
 
 app.get('/api/target-speed', (req, res) => {
-  const result = updateFromFrontend({ speed: latestGps.speed });
+  const result = updateFromFrontend({
+    latitude: latestGps.latitude,
+    longitude: latestGps.longitude,
+    speed: latestGps.speed
+  });
   res.json(result || { lower: null, upper: null });
 });
 
-// ⬇️ Vue-Frontend bereitstellen
+// 📦 Statische Dateien aus dem Frontend-Build
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (req, res) => {
+
+// ⛑️ Fallback für SPA (Single Page App)
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
+// 🔊 Server starten
 app.listen(PORT, () => {
   console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
 });

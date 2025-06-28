@@ -4,8 +4,9 @@
       <span class="timer">{{ time }}</span>
     </div>
 
-    <div class="phase-container" v-show="phaseVisible">
-      <span class="phase-number">{{ phase }}</span>
+    <!-- Phase sichtbar nur wenn übergeben -->
+    <div class="phase-container" v-if="phase !== undefined">
+      <span class="phase-number">Phase: {{ phase }}</span>
     </div>
 
     <div class="button-row">
@@ -15,21 +16,30 @@
         <button class="btn btn-secondary" @click="$emit('reset')">Reset</button>
       </div>
     </div>
-  </div>
-  
-<div v-if="showMessage" class="modal-overlay">
-    <div class="modal-box">
-      <button class="close-btn" @click="$emit('closeMessage')">×</button>
-      <p class="modal-message">{{ message }}</p>
+
+    <!-- Pop-up Nachricht -->
+    <div v-if="showMessage" class="modal-overlay">
+      <div class="modal-box">
+        <button class="close-btn" @click="$emit('closeMessage')">×</button>
+        <p class="modal-message">{{ message }}</p>
+      </div>
     </div>
   </div>
-
 </template>
 
 <script>
 export default {
-  props: ['time', 'phase', 'phaseVisible', 'running', 'message', 'showMessage'],
-    emits: ['start', 'stop', 'reset', 'closeMessage']
-
+  props: {
+    time: String,
+    phase: Number,
+    running: Boolean,
+    message: String,
+    showMessage: Boolean
+  },
+  emits: ['start', 'stop', 'reset', 'pause', 'resume', 'closeMessage']
 };
 </script>
+
+<style scoped>
+/* Optional: Styling für Timer, Pop-up etc. */
+</style>

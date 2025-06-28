@@ -1,9 +1,13 @@
 const { defineConfig } = require('@vue/cli-service')
 
-module.exports = defineConfig({
-  transpileDependencies: true,
+module.exports = {
   devServer: {
-    host: '0.0.0.0',     // Damit der Server auch über die IP im Netzwerk erreichbar ist
-    port: 8080           // Optional – kannst du auch ändern, z. B. auf 3000
+    host: '0.0.0.0',
+    port: 8080,
+    allowedHosts: 'all', // Damit ngrok als Host akzeptiert wird
+    client: {
+      overlay: false 
+    }
   }
-})
+}
+

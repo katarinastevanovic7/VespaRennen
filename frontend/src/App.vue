@@ -31,7 +31,8 @@
 
         />
 
-        <MessageComponent :message="message" />
+        <MessageComponent :message="message" :show="showMessage" @closeMessage="showMessage = false" />
+
 
       </div>
     </div>
@@ -43,6 +44,7 @@ import SpeedComponent from './components/speedComponent.vue';
 import TargetSpeedComponent from './components/targetSpeedComponent.vue';
 import TimerComponent from './components/timerComponent.vue';
 import MessageComponent from './components/messageComponent.vue';
+import { startGps } from './utils/gpsSender.js';
 
 export default {
   components: {
@@ -59,11 +61,12 @@ export default {
       paused: false,
       distance: 0,
       speedDisplay: '--',
-      targetSpeedDisplay: '--',
       directionArrow: '',
       directionClass: '',
       showMessage: false,
       message: '',
+      phaseCounter: 5,
+      gpsStarted: false,
       targetSpeedLower: null,
     targetSpeedUpper: null
      
@@ -74,6 +77,7 @@ export default {
       const minutes = Math.floor(this.time / 60).toString().padStart(2, '0');
       const seconds = (this.time % 60).toString().padStart(2, '0');
       return `${minutes}:${seconds}`;
+
     }
   },
   mounted() {
@@ -88,7 +92,7 @@ export default {
             this.speedDisplay = speedKmh.toFixed(1);
 
            // const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
-           // this.targetSpeedDisplay = `${target}`;
+           // this.targetSpeedDisplay = ${target};
 
           }
         });
@@ -105,35 +109,62 @@ export default {
     }, 400);
   },
   methods: {
-    start() {
-      this.message = '';
-      this.showMessage = false;
-      this.running = true;
-      this.paused = false;
+   start() {
+    // Falls der Timer läuft und nicht pausiert ist, nichts tun
+    if (this.running && !this.paused) return;
 
-      if (this.time === 0) {
+    this.message = '';
+    this.showMessage = false;
+
+    // Wenn pausiert, dann fortsetzen
+    if (this.paused) {
+      this.resume();
+      return;
+    }
+
+    // ⭐ GPS-Daten nur einmal starten
+    if (!this.gpsStarted) {
+      startGps();
+      this.gpsStarted = true;
+    }
+
+    // 10 Sekunden Countdown als Puffer
+    this.time = 10;
+    this.running = true;
+
+    let bufferCountdown = setInterval(() => {
+      this.time--;
+      if (this.time <= 0) {
+        clearInterval(bufferCountdown);
+
+        // Nach 10 Sekunden startet der Haupt-Timer (5 Minuten)
         this.time = 300;
+        this.phaseCounter = 5;
+
+        this.timerInterval = setInterval(() => {
+          if (this.time <= 0) {
+            this.message = 'You made it Jörg! 🎉🛵';
+            this.showMessage = true;
+            this.stop();
+            return;
+          }
+
+          if (this.time % 30 === 0 && this.phaseCounter > 0) {
+            this.phaseCounter--;
+          }
+
+          this.time--;
+        }, 1000);
       }
+    }, 1000);
+  },
 
-      this.timerInterval = setInterval(() => {
-        if (this.time <= 0) {
-          this.message = 'You made it Jörg! 🎉🛵';
-          this.showMessage = true; 
-          this.stop();
-          return;
-        }
 
-        if (this.time % 30 === 0 && this.phaseCounter > 0) {
-          this.phaseCounter--;
-        }
-
-        this.time--;
-      }, 1000);
-    },
 
     stop() {
       clearInterval(this.timerInterval);
       this.running = false;
+      this.paused = true;
     },
 
     reset() {
@@ -143,7 +174,6 @@ export default {
       this.running = false;
       this.paused = false;
       this.speedDisplay = '--';
-      this.targetSpeedDisplay = '--';
       this.directionArrow = '';
       this.directionClass = '';
     },
@@ -161,21 +191,24 @@ export default {
       if (this.paused) {
         this.running = true;
         this.paused = false;
-        this.message = '';
 
         this.timerInterval = setInterval(() => {
           if (this.time <= 0) {
             this.message = 'You made it Jörg! 🎉🛵';
+            this.showMessage = true;
             this.stop();
             return;
           }
 
-      
+          if (this.time % 30 === 0 && this.phaseCounter > 0) {
+            this.phaseCounter--;
+          }
 
           this.time--;
         }, 1000);
       }
-    }
+}
+
   }
 };
 </script>

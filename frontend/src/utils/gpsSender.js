@@ -3,13 +3,15 @@ let lastTimestamp = null;
 
 export function startGps() {
   if ('geolocation' in navigator) {
+    console.log("📍 GPS-Tracking gestartet...");
+
     navigator.geolocation.watchPosition(
       sendPosition,
       handleError,
       {
-        enableHighAccuracy: true,
-        maximumAge: 0,         // Keine gecachten Daten
-        timeout: 10000
+        enableHighAccuracy: true,  // Beste Genauigkeit
+        maximumAge: 0,             // Keine alten Daten verwenden
+        timeout: Infinity          // Kein Zeitlimit
       }
     );
   } else {
@@ -35,12 +37,13 @@ function sendPosition(position) {
 
   let calcSpeed = speed;
 
-  // Nur wenn speed null oder 0 ist, berechnen wir manuell
+  // Fallback-Berechnung der Geschwindigkeit
   if ((speed == null || speed === 0) && lastPosition && lastTimestamp) {
     const distKm = getDistanceKm(lastPosition.lat, lastPosition.lon, latitude, longitude);
     const timeSec = (now - lastTimestamp) / 1000;
+
     if (timeSec > 0 && distKm > 0) {
-      calcSpeed = (distKm / timeSec) * 1000; // in m/s
+      calcSpeed = (distKm / timeSec) * 1000; // Geschwindigkeit in m/s
     }
   }
 
@@ -48,12 +51,11 @@ function sendPosition(position) {
   lastTimestamp = now;
 
   const data = {
-    latitude,
-    longitude,
+    latitude: latitude,
+    longitude: longitude,
     speed: parseFloat((calcSpeed || 0).toFixed(2))
   };
 
-  // 💬 Konsole ausgeben bei jeder Position
   console.log("📡 GPS-Daten gesendet:", data);
 
   fetch('https://vesparennen.onrender.com/api/gps/update', {
@@ -64,5 +66,5 @@ function sendPosition(position) {
 }
 
 function handleError(error) {
-  console.error("❌ Fehler beim GPS:", error);
+  console.error("❌ GPS-Fehler:", error.message, error);
 }

@@ -1,59 +1,67 @@
 // server.js
 const express = require('express');
-const path = require('path');
-const WebSocket = require('ws');
 const cors = require('cors');
-const gpsLogic = require('./gpsProcessor');
+const bodyParser = require('body-parser');
+const { updateFromFrontend } = require('./gpsProcessor');
+const { updateDistanceAndAvgSpeed } = require('./gpsMath');
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-let latestData = null;
-let targetSpeed = { lower: 0, upper: 0 };
+const PORT = 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// GPS-Daten empfangen
+let latestGps = {
+  latitude: null,
+  longitude: null,
+  speed: 0,
+  timestamp: null,
+  totalDistance: 0,
+  avgSpeed: 0
+};
+
 app.post('/api/gps/update', (req, res) => {
-  latestData = req.body;
-  console.log('Neue GPS-Daten empfangen:', latestData);
+  const { latitude, longitude, speed } = req.body;
+  const timestamp = Date.now();
 
-  const result = gpsLogic.updateFromFrontend(latestData);
-  if (result) {
-    targetSpeed.lower = result.lower;
-    targetSpeed.upper = result.upper;
-    console.log(`Zielgeschwindigkeit: ${targetSpeed.lower} ↓ / ${targetSpeed.upper} ↑ km/h`);
-  }
+  // Distanz und Ø-Geschwindigkeit berechnen
+  const result = updateDistanceAndAvgSpeed(
+    latitude,
+    longitude,
+    speed,
+    latestGps.latitude,
+    latestGps.longitude,
+    latestGps.timestamp,
+    latestGps.totalDistance,
+    timestamp
+  );
 
+  latestGps = {
+    latitude,
+    longitude,
+    speed,
+    timestamp,
+    totalDistance: result.totalDistance,
+    avgSpeed: result.avgSpeed
+  };
+
+  console.log("📥 Empfangen:", latestGps);
   res.sendStatus(200);
 });
 
-// GPS-Daten abrufen
 app.get('/api/gps/status', (req, res) => {
-  res.json(latestData || {});
+  res.json({
+    speed: latestGps.speed,
+    totalDistance: latestGps.totalDistance,
+    avgSpeed: latestGps.avgSpeed
+  });
 });
 
-// Zielgeschwindigkeit abrufen
 app.get('/api/target-speed', (req, res) => {
-  res.json(targetSpeed);
+  const result = updateFromFrontend({ speed: latestGps.speed });
+  res.json(result || { lower: null, upper: null });
 });
 
-// Statisches Vue-Frontend ausliefern (korrekter Pfad aus backend/)
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// Alle anderen Routen auf index.html umleiten (korrekter Pfad)
-app.get(/^\/(?!api\/).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-});
-
-// HTTP-Server starten
-app.listen(port, () => {
-  console.log(`Server läuft unter http://localhost:${port}`);
-});
-
-// WebSocket-Server (optional)
-const wss = new WebSocket.Server({ port: 8080 });
-wss.on('connection', (ws) => {
-  console.log('WebSocket: Frontend verbunden');
+app.listen(PORT, () => {
+  console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
 });

@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -11,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Live-GPS-Daten
 let latestGps = {
   latitude: null,
   longitude: null,
@@ -61,9 +61,8 @@ app.get('/api/target-speed', (req, res) => {
   res.json(result || { lower: null, upper: null });
 });
 
-// ==== NEU: Statisches Vue-Frontend ausliefern ====
+// ⬇️ Vue-Frontend bereitstellen
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });

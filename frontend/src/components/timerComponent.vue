@@ -29,7 +29,7 @@
 <script>
 export default {
   props: ['time', 'phase', 'phaseVisible', 'running', 'message', 'showMessage'],
-    emits: ['start', 'stop', 'reset', 'closeMessage']
+    emits: ['start', 'reset', 'pause', 'resume', 'stop', 'reset', 'closeMessage']
 
 };
 </script>

@@ -62,7 +62,7 @@ app.get('/api/target-speed', (req, res) => {
 });
 
 // ➕ Frontend bereitstellen
-app.use('/', express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // ➕ SPA-Routing unterstützen
 app.get('*', (req, res) => {

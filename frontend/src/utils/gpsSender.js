@@ -9,9 +9,9 @@ export function startGps() {
       sendPosition,
       handleError,
       {
-        enableHighAccuracy: true,  // Beste Genauigkeit
-        maximumAge: 0,             // Keine alten Daten verwenden
-        timeout: Infinity          // Kein Zeitlimit
+        enableHighAccuracy: true,
+        maximumAge: 1000,  // bis zu 1 Sekunde alte Positionen erlaubt
+        timeout: 10000     // max. Wartezeit 10 Sekunden
       }
     );
   } else {
@@ -37,13 +37,13 @@ function sendPosition(position) {
 
   let calcSpeed = speed;
 
-  // Fallback-Berechnung der Geschwindigkeit
+  // Fallback, wenn native Geschwindigkeit fehlt
   if ((speed == null || speed === 0) && lastPosition && lastTimestamp) {
     const distKm = getDistanceKm(lastPosition.lat, lastPosition.lon, latitude, longitude);
     const timeSec = (now - lastTimestamp) / 1000;
 
     if (timeSec > 0 && distKm > 0) {
-      calcSpeed = (distKm / timeSec) * 1000; // Geschwindigkeit in m/s
+      calcSpeed = (distKm / timeSec) * 1000; // m/s
     }
   }
 
@@ -51,9 +51,9 @@ function sendPosition(position) {
   lastTimestamp = now;
 
   const data = {
-    latitude: latitude,
-    longitude: longitude,
-    speed: parseFloat((calcSpeed || 0).toFixed(2))
+    latitude,
+    longitude,
+    speed: parseFloat((calcSpeed || 0).toFixed(2)) // m/s
   };
 
   console.log("📡 GPS-Daten gesendet:", data);

@@ -163,19 +163,96 @@ L.layerGroup([satellite, labels]).addTo(map);
     function startCountdown() {
       countdownStart = Date.now();
       if (countdownInterval) clearInterval(countdownInterval);
-      countdownInterval = setInterval(() => {
-        const elapsed = Date.now() - countdownStart;
-        const remaining = countdownRemaining - elapsed;
-        if (remaining <= 0) {
-          clearInterval(countdownInterval);
-          countdownRemaining = 0;
-          updateInfoBoxTime(0);
-          finishRun();
-        } else {
-          updateInfoBoxTime(remaining);
-        }
-      }, 50);
+      const countdownStartTime = Date.now(); // echte Startzeit merken
+
+countdownInterval = setInterval(() => {
+  const now = Date.now();
+  const paused = totalPausedTime + (gpsPaused && pauseTime ? now - pauseTime : 0);
+  const elapsed = now - countdownStartTime - paused;
+  const remaining = COUNTDOWN_TOTAL - elapsed;
+
+  updateInfoBoxTime(Math.max(remaining, 0));
+
+  if (remaining <= 0) {
+    clearInterval(countdownInterval);
+    finishRun();
+  }
+}, 100);
     }
+//timer synchronisation
+setInterval(() => {
+  if (!trackingStarted) {
+    fetch('http://localhost:3000/api/start-tracking')
+      .then(res => res.json())
+      .then(data => {
+        if (data.start) {
+          console.log('🚦 Start-Signal empfangen');
+          startBtn.click();
+        }
+      });
+  }
+
+  // ➕ Pause-Signal abfragen
+  fetch('http://localhost:3000/api/pause-tracking')
+    .then(res => res.json())
+    .then(data => {
+      if (data.pause && !gpsPaused) {
+        console.log('⏸️ Pause-Signal empfangen');
+        toggleBtn.click(); // klickt auf Pause/Resume
+      }
+    });
+
+  
+
+  
+
+  // Stop
+fetch('http://localhost:3000/api/stop-tracking')
+  .then(res => res.json())
+  .then(data => {
+    if (data.stop && trackingStarted) {
+      console.log('🛑 Stop-Signal empfangen');
+      finishRun(); // oder location.reload() bei Bedarf
+    }
+  });
+
+    // Resume
+    fetch('http://localhost:3000/api/resume-tracking')
+  .then(res => res.json())
+  .then(data => {
+    if (data.resume) {
+      if (gpsPaused) {
+        console.log('▶️ Resume-Signal empfangen – GPS ist pausiert → toggling');
+        toggleBtn.click(); // wirklich nur wenn pausiert
+      } else {
+        console.log('ℹ️ Resume-Signal empfangen – aber bereits aktiv');
+      }
+    }
+  });
+
+  // ➕ Reset-Signal abfragen
+  fetch('http://localhost:3000/api/reset-tracking')
+    .then(res => res.json())
+    .then(data => {
+      if (data.reset) {
+        console.log('🔁 Reset-Signal empfangen');
+        location.reload(); // einfacher Reset (neu laden)
+      }
+    });
+}, 250);
+
+    /*setInterval(() => {
+  if (!trackingStarted) {
+    fetch('http://localhost:3000/api/start-tracking')
+      .then(res => res.json())
+      .then(data => {
+        if (data.start) {
+          console.log('🚦 Tracking-Start vom Server empfangen');
+          startBtn.click(); // simuliert Klick auf Start-Button
+        }
+      });
+  }
+}, 1000); // alle 1 Sekunde prüfen*/
 
     function updateInfoBox() {
       let timeText = "⏱️ Letztes Update: –";

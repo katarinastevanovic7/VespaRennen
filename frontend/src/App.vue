@@ -114,69 +114,94 @@ export default {
         
   
   methods: {
-    start() {
-      this.message = '';
-      this.showMessage = false;
-      this.running = true;
-      this.paused = false;
+  start() {
+  this.message = '';
+  this.showMessage = false;
+  this.running = true;
+  this.paused = false;
 
-      if (this.time === 0) {
-        this.time = 300;
-      }
+  // Backend Tracking starten
+  fetch('http://localhost:3000/api/start-tracking', {
+    method: 'POST'
+  });
 
-      this.timerInterval = setInterval(() => {
-        if (this.time <= 0) {
-          this.message = 'You made it Jörg! 🎉🛵';
-          this.showMessage = true; 
-          this.stop();
-          return;
-        }
-        this.time--;
-      }, 1000);
-    },
+  if (this.time === 0) {
+    this.time = 300;
+  }
 
-    stop() {
-      clearInterval(this.timerInterval);
-      this.running = false;
-    },
-
-    reset() {
+  this.timerInterval = setInterval(() => {
+    if (this.time <= 0) {
+      this.message = 'You made it Jörg! 🎉🛵';
+      this.showMessage = true; 
       this.stop();
-      this.time = 300;
-      this.distance = 0;
-      this.running = false;
-      this.paused = false;
-      this.speedDisplay = '--';
-      this.targetSpeedDisplay = '--';
-      this.directionArrow = '';
-      this.directionClass = '';
-    },
+      return;
+    }
+    this.time--;
+  }, 1000);
+},
 
-    pause() {
-      if (this.running && !this.paused) {
-        clearInterval(this.timerInterval);
-        this.paused = true;
-        this.running = false;
-        this.message = '⏸️ Pausiert';
-        this.showMessage = true;
-      }
-    },
+   stop() {
+  clearInterval(this.timerInterval);
+  this.running = false;
+
+  fetch('http://localhost:3000/api/pause-tracking', {
+    method: 'POST'
+  });
+},
+
+    
+    reset() {
+  this.stop();
+  this.time = 300;
+  this.distance = 0;
+  this.running = false;
+  this.paused = false;
+  this.speedDisplay = '--';
+  this.targetSpeedDisplay = '--';
+  this.directionArrow = '';
+  this.directionClass = '';
+
+  // ➕ Backend informieren
+  fetch('http://localhost:3000/api/reset-tracking', {
+    method: 'POST'
+  });
+},
+
+  
+    /*pause() {
+  if (this.running && !this.paused) {
+    clearInterval(this.timerInterval);
+    this.paused = true;
+    this.running = false;
+    this.message = '⏸️ Pausiert';
+    this.showMessage = true;
+
+    // ➕ Backend informieren
+    fetch('http://localhost:3000/api/pause-tracking', {
+      method: 'POST'
+    });
+  }
+},*/
 
     resume() {
-      if (this.paused) {
-        this.running = true;
-        this.paused = false;
+  if (this.paused) {
+    this.running = true;
+    this.paused = false;
 
-        this.timerInterval = setInterval(() => {
-          if (this.time <= 0) {
-            this.message = 'You made it Jörg! 🎉🛵';
-            this.showMessage = true;
-            this.stop();
-            return;
-          }
-          this.time--;
-        }, 1000);
+    fetch('http://localhost:3000/api/resume-tracking', {
+      method: 'POST'
+    });
+
+    this.timerInterval = setInterval(() => {
+      if (this.time <= 0) {
+        this.message = 'You made it Jörg! 🎉🛵';
+        this.showMessage = true;
+        this.stop();
+        return;
       }
+      this.time--;
+    }, 1000);
+  }
     }
   }
 };

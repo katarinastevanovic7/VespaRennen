@@ -2,14 +2,14 @@
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
       <div class="speed-row">
-        <!-- Zielgeschwindigkeit (langsam) -->
+        <!-- Zielgeschwindigkeit (langsamer) -->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedUpper"
           directionClass="text-success"
         />
         <!-- Aktuelle Geschwindigkeit -->
         <SpeedComponent :speed="speedDisplay" />
-        <!-- Zielgeschwindigkeit (schnell) -->
+        <!-- Zielgeschwindigkeit (schneller) -->
         <TargetSpeedComponent
           :targetSpeed="targetSpeedLower"
           directionClass="text-danger"
@@ -31,14 +31,18 @@
         @closeMessage="showMessage = false"
       />
 
+      <!-- Nachricht -->
       <MessageComponent :message="message" :show="showMessage" @closeMessage="showMessage = false" />
 
-      <!-- GPS-Debug-Ausgabe für Handytest -->
-      <div class="mt-4" style="color: white;">
-        <p>📍 Latitude: <span id="lat">?</span></p>
-        <p>📍 Longitude: <span id="lon">?</span></p>
-        <p>🚀 Native Speed (m/s): <span id="nativeSpeed">?</span></p>
+      <!-- 🔽 GPS-Daten direkt anzeigen -->
+      <div class="mt-3">
+        <p>📍 Latitude: {{ latitude }}</p>
+        <p>📍 Longitude: {{ longitude }}</p>
+        <p>🚀 Geschwindigkeit: {{ speedDisplay }} km/h</p>
+        <p>🛣️ Strecke: {{ totalDistance.toFixed(2) }} m</p>
+        <p>⚡ Ø Geschwindigkeit: {{ avgSpeed.toFixed(1) }} km/h</p>
       </div>
+
     </div>
   </div>
 </template>
@@ -72,7 +76,12 @@ export default {
       phaseCounter: 5,
       gpsStarted: false,
       targetSpeedLower: null,
-      targetSpeedUpper: null
+      targetSpeedUpper: null,
+      // 🔽 Neue Variablen zur Anzeige
+      latitude: null,
+      longitude: null,
+      totalDistance: 0,
+      avgSpeed: 0
     };
   },
   computed: {
@@ -83,20 +92,22 @@ export default {
     }
   },
   mounted() {
-    // Backend-GPS-Daten holen
     setInterval(() => {
-      fetch('http://localhost:3000/api/gps/status')
+      fetch('https://vesparennen.onrender.com/api/gps/status')
         .then(res => res.json())
         .then(data => {
           console.log('📡 GPS-Daten empfangen:', data);
           if (data.speed !== undefined) {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
+            this.latitude = data.latitude;
+            this.longitude = data.longitude;
+            this.totalDistance = data.totalDistance;
+            this.avgSpeed = data.avgSpeed * 3.6;
           }
         });
 
-      // Zielgeschwindigkeit vom Server holen
-      fetch('http://localhost:3000/api/target-speed')
+      fetch('https://vesparennen.onrender.com/api/target-speed')
         .then(res => res.json())
         .then(target => {
           if (target.lower !== null && target.upper !== null) {
@@ -104,20 +115,7 @@ export default {
             this.targetSpeedUpper = target.upper;
           }
         });
-    }, 400);
-
-    // Native GPS-Daten direkt vom Handy anzeigen (zum Testen)
-    navigator.geolocation.watchPosition(
-      (pos) => {
-        document.getElementById("lat").textContent = pos.coords.latitude.toFixed(6);
-        document.getElementById("lon").textContent = pos.coords.longitude.toFixed(6);
-        document.getElementById("nativeSpeed").textContent = (pos.coords.speed || 0).toFixed(2);
-      },
-      (err) => {
-        console.error("⚠️ GPS-Fehler", err);
-      },
-      { enableHighAccuracy: true }
-    );
+    }, 1000);
   },
   methods: {
     start() {
@@ -142,7 +140,6 @@ export default {
         this.time--;
         if (this.time <= 0) {
           clearInterval(bufferCountdown);
-
           this.time = 300;
           this.phaseCounter = 5;
 
@@ -216,5 +213,5 @@ export default {
 </script>
 
 <style scoped>
-/* Optional: weitere Styles */
+/* optionales Styling */
 </style>

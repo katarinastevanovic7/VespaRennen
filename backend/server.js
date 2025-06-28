@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { updateFromFrontend } = require('./gpsProcessor');
-const { updateDistanceAndAvgSpeed } = require('./gpsMath');
 
 const app = express();
 const PORT = 3000;
@@ -44,6 +43,7 @@ app.post('/api/gps/update', (req, res) => {
     totalDistance: result.totalDistance,
     avgSpeed: result.avgSpeed
   };
+
 
   console.log("📥 Empfangen:", latestGps);
   res.sendStatus(200);

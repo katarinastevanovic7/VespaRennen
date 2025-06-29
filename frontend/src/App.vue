@@ -49,7 +49,7 @@ export default {
   },
   data() {
     return {
-      time: 10,
+      time:300,
       timerInterval: null,
       running: false,
       //paused: false,

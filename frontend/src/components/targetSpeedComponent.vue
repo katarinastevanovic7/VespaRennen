@@ -1,13 +1,17 @@
 <template>
   <div class="target-display" :class="directionClass">
-    <span class="value">{{ targetSpeed }}</span>
-    <span class="unit">km/h</span>
-     <!-- 🆕 Zeige Laps nur wenn übergeben -->
-    <div class="laps" v-if="laps !== null && laps !== undefined">
-      <small>({{ parseFloat(laps).toFixed(1) }} Runden)</small>
+    <div class="speed-line">
+      <div class="left">
+        <span class="value">{{ targetSpeed }}</span>
+        <span class="unit">km/h</span>
+      </div>
+      <div class="right" v-if="laps !== null && laps !== undefined">
+        <span class="laps">{{ parseFloat(laps).toFixed(1) }} R</span>
+      </div>
     </div>
   </div>
 </template>
+
 
 <script>
 export default {

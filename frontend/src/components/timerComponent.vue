@@ -11,7 +11,7 @@
     <div class="button-row">
       <button class="btn btn-warning" @click="$emit('start')" :disabled="running">Start</button>
       <div class="stop-reset-row">
-<button class="btn btn-danger" @click="$emit('stop')">Stop</button>
+
         <button class="btn btn-secondary" @click="$emit('reset')">Reset</button>
       </div>
     </div>
@@ -29,7 +29,7 @@
 <script>
 export default {
   props: ['time', 'phase', 'phaseVisible', 'running', 'message', 'showMessage'],
-    emits: ['start', 'reset', 'pause', 'resume', 'stop', 'reset', 'closeMessage']
+    emits: ['start', 'reset', 'resume', 'reset', 'closeMessage']
 
 };
 </script>

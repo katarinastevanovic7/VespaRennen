@@ -21,10 +21,8 @@
         <TimerComponent 
           :time="formattedTime"
           @start="start"
-          @stop="stop"
           @reset="reset"
-          @pause="pause"
-          @resume="resume"
+         
         />
         <MessageComponent 
           :message="message" 
@@ -54,7 +52,7 @@ export default {
       time: 10,
       timerInterval: null,
       running: false,
-      paused: false,
+      //paused: false,
       distance: 0,
       speedDisplay: '--',
       targetSpeedDisplay: '--',
@@ -114,7 +112,21 @@ export default {
         
   
   methods: {
+    
   start() {
+
+      // ⛔ Verhindere Mehrfachstart
+  if (this.running && !this.paused) {
+    console.warn('⏳ Timer läuft bereits – Mehrfachstart verhindert');
+    return;
+  }
+
+  // ✅ Bereits laufenden Timer stoppen, falls versehentlich mehrfach gedrückt
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+    this.timerInterval = null;
+  }
+
   this.message = '';
   this.showMessage = false;
   this.running = true;
@@ -183,7 +195,7 @@ export default {
   }
 },*/
 
-    resume() {
+    /*resume() {
   if (this.paused) {
     this.running = true;
     this.paused = false;
@@ -202,7 +214,7 @@ export default {
       this.time--;
     }, 1000);
   }
-    }
+    }*/
   }
 };
 </script>

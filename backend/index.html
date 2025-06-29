@@ -262,10 +262,6 @@
             }
           });
 
-
-
-
-
         // Stop
         fetch('http://localhost:3000/api/stop-tracking')
           .then(res => res.json())
@@ -300,19 +296,6 @@
             }
           });
       }, 250);
-
-      /*setInterval(() => {
-    if (!trackingStarted) {
-      fetch('http://localhost:3000/api/start-tracking')
-        .then(res => res.json())
-        .then(data => {
-          if (data.start) {
-            console.log('🚦 Tracking-Start vom Server empfangen');
-            startBtn.click(); // simuliert Klick auf Start-Button
-          }
-        });
-    }
-  }, 1000); // alle 1 Sekunde prüfen*/
 
       function updateInfoBox() {
         let timeText = "⏱️ Letztes Update: –";

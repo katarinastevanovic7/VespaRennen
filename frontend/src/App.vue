@@ -84,9 +84,6 @@ export default {
             const speedKmh = data.speed * 3.6;
             this.speedDisplay = speedKmh.toFixed(1);
 
-           // const target = 20; // Zielgeschwindigkeit (kannst du später dynamisch machen)
-           // this.targetSpeedDisplay = `${target}`;
-
           }
         });
 
@@ -179,42 +176,9 @@ export default {
   });
 },
 
-  
-    /*pause() {
-  if (this.running && !this.paused) {
-    clearInterval(this.timerInterval);
-    this.paused = true;
-    this.running = false;
-    this.message = '⏸️ Pausiert';
-    this.showMessage = true;
 
-    // ➕ Backend informieren
-    fetch('http://localhost:3000/api/pause-tracking', {
-      method: 'POST'
-    });
-  }
-},*/
 
-    /*resume() {
-  if (this.paused) {
-    this.running = true;
-    this.paused = false;
-
-    fetch('http://localhost:3000/api/resume-tracking', {
-      method: 'POST'
-    });
-
-    this.timerInterval = setInterval(() => {
-      if (this.time <= 0) {
-        this.message = 'You made it Jörg! 🎉🛵';
-        this.showMessage = true;
-        this.stop();
-        return;
-      }
-      this.time--;
-    }, 1000);
-  }
-    }*/
+ 
   }
 };
 </script>

@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <title>GPS Tracker mit Umschaltbutton</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
-    html, body, #map {
+    html,
+    body,
+    #map {
       height: 100%;
       margin: 0;
       padding: 0;
     }
+
     .button {
       position: absolute;
       top: 10px;
@@ -22,9 +26,20 @@
       border-radius: 5px;
       z-index: 1000;
     }
-    #startBtn { left: 10px; }
-    #toggleBtn { left: 140px; background-color: orange; }
-    #setStartBtn { left: 270px; background-color: green; }
+
+    #startBtn {
+      left: 10px;
+    }
+
+    #backBtn {
+      left: 140px;
+      background-color: #dc3545;
+    }
+
+    #toggleBtn {
+      left: 270px;
+      background-color: orange;
+    }
 
     #infoBox {
       position: absolute;
@@ -35,7 +50,7 @@
       font-family: sans-serif;
       font-size: 14px;
       border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
       z-index: 1000;
       text-align: right;
       min-width: 160px;
@@ -43,6 +58,7 @@
     }
   </style>
 </head>
+
 <body>
   <button id="startBtn" class="button">📍 Start Tracking</button>
   <button id="toggleBtn" class="button">⏸️ Pause</button>
@@ -59,28 +75,23 @@
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-<script>
-  (function(){
-"use strict";
-    const startBtn = document.getElementById('startBtn');
-    const backBtn = document.getElementById('backBtn');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const setStartBtn = document.getElementById('setStartBtn');
-    const infoBox = document.getElementById('infoBox');
-    // Karte initialisieren (mit Default View, wird später durch Standort überschrieben)
-    const startCoords = [48.71598339320953, 12.844524979591371];
-    const map = L.map('map').setView(startCoords, 19);
-    const satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
-  attribution: 'Tiles © Esri'
-});
+  <script>
+    (function () {
+      "use strict";
+      // Karte initialisieren (mit Default View, wird später durch Standort überschrieben)
+      const map = L.map('map').setView([47.7, 9.0], 17);
+      const satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles © Esri'
+      });
 
-const labels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
-  attribution: 'Labels © Esri'
-});
+      const labels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Labels © Esri'
+      });
 
-L.layerGroup([satellite, labels]).addTo(map);
+      L.layerGroup([satellite, labels]).addTo(map);
+
 
     // Beim Laden einmal aktuellen Standort holen und Karte dahin zentrieren
      // Karte direkt auf die Strecke zentrieren
@@ -202,119 +213,192 @@ L.layerGroup([satellite, labels]).addTo(map);
       return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
     }
 
-    function updateInfoBoxTime(remainingMs) {
-      const timeStr = formatTime(Math.max(remainingMs, 0));
-      infoBox.innerHTML = infoBox.innerHTML.replace(/⏳ Timer: .*$/m, `⏳ Timer: ${timeStr}`);
-    }
-
-    function startCountdown() {
-      countdownStart = Date.now();
-      if (countdownInterval) clearInterval(countdownInterval);
-      countdownInterval = setInterval(() => {
-        const elapsed = Date.now() - countdownStart;
-        const remaining = countdownRemaining - elapsed;
-        if (remaining <= 0) {
-          clearInterval(countdownInterval);
-          countdownRemaining = 0;
-          updateInfoBoxTime(0);
-          finishRun();
-        } else {
-          updateInfoBoxTime(remaining);
-        }
-      }, 50);
-    }
-
-    function updateInfoBox() {
-      let timeText = "⏱️ Letztes Update: –";
-      let speedText = "🚀 Geschwindigkeit: –";
-      let restDistText = "📏 Reststrecke: –";
-      let coveredDistText = "✅ Zurückgelegt: –";
-      let totalDistText = "🧭 Gesamtstrecke: –";
-      let avgSpeedText = "📈 Ø-Tempo: –";
-      let suggSpeedText = "🌟 Ziel: – / –";
-
-      if (lastUpdateTime) {
-        let delta = Date.now() - lastUpdateTime;
-        if (gpsPaused && pauseTime) {
-          delta -= Date.now() - pauseTime;
-        }
-        timeText = `⏱️ Letztes Update: ${(delta / 1000).toFixed(2)} s`;
-      }
-      if (currentSpeed !== null) {
-        const kmh = (currentSpeed * 3.6).toFixed(1);
-        speedText = `🚀 Geschwindigkeit: ${kmh} km/h`;
-      }
-      if (distanceToGoal !== null) {
-        restDistText = `📏 Reststrecke: ${distanceToGoal.toFixed(1)} m`;
-      }
-      if (distanceCovered !== null) {
-        coveredDistText = `✅ Zurückgelegt: ${distanceCovered.toFixed(1)} m`;
-      }
-      if (typeof totalDistance === "number") {
-        totalDistText = `🧭 Gesamtstrecke: ${totalDistance.toFixed(1)} m`;
-      }
-      if (averageSpeed > 0) {
-        const kmh = (averageSpeed * 3.6).toFixed(1);
-        avgSpeedText = `📈 Ø-Tempo: ${kmh} km/h`;
+      function updateInfoBoxTime(remainingMs) {
+        const timeStr = formatTime(Math.max(remainingMs, 0));
+        infoBox.innerHTML = infoBox.innerHTML.replace(/⏳ Timer: .*$/m, `⏳ Timer: ${timeStr}`);
       }
 
-      if (firstTrackingTime && distanceCovered > 0) {
-        const paused = totalPausedTime + (gpsPaused && pauseTime ? Date.now() - pauseTime : 0);
-        const elapsedSec = (Date.now() - firstTrackingTime - paused) / 1000;
-        if (elapsedSec > 0) {
-          averageSpeed = distanceCovered / elapsedSec;
+      function startCountdown() {
+        countdownStart = Date.now();
+        if (countdownInterval) clearInterval(countdownInterval);
+        const countdownStartTime = Date.now(); // echte Startzeit merken
+
+        countdownInterval = setInterval(() => {
+          const now = Date.now();
+          const paused = totalPausedTime + (gpsPaused && pauseTime ? now - pauseTime : 0);
+          const elapsed = now - countdownStartTime - paused;
+          const remaining = COUNTDOWN_TOTAL - elapsed;
+
+          updateInfoBoxTime(Math.max(remaining, 0));
+
+          if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            finishRun();
+          }
+        }, 100);
+      }
+      //timer synchronisation
+      setInterval(() => {
+        if (!trackingStarted) {
+          fetch('http://localhost:3000/api/start-tracking')
+            .then(res => res.json())
+            .then(data => {
+              if (data.start) {
+                console.log('🚦 Start-Signal empfangen');
+                startBtn.click();
+              }
+            });
         }
 
-        let remainingTime = countdownRemaining;
-        if (countdownStart !== null) {
-          remainingTime = countdownRemaining - (Date.now() - countdownStart);
+        // ➕ Pause-Signal abfragen
+        fetch('http://localhost:3000/api/pause-tracking')
+          .then(res => res.json())
+          .then(data => {
+            if (data.pause && !gpsPaused) {
+              console.log('⏸️ Pause-Signal empfangen');
+              toggleBtn.click(); // klickt auf Pause/Resume
+            }
+          });
+
+        // Stop
+        fetch('http://localhost:3000/api/stop-tracking')
+          .then(res => res.json())
+          .then(data => {
+            if (data.stop && trackingStarted) {
+              console.log('🛑 Stop-Signal empfangen');
+              finishRun(); // oder location.reload() bei Bedarf
+            }
+          });
+
+        // Resume
+        fetch('http://localhost:3000/api/resume-tracking')
+          .then(res => res.json())
+          .then(data => {
+            if (data.resume) {
+              if (gpsPaused) {
+                console.log('▶️ Resume-Signal empfangen – GPS ist pausiert → toggling');
+                toggleBtn.click(); // wirklich nur wenn pausiert
+              } else {
+                console.log('ℹ️ Resume-Signal empfangen – aber bereits aktiv');
+              }
+            }
+          });
+
+        // ➕ Reset-Signal abfragen
+        fetch('http://localhost:3000/api/reset-tracking')
+          .then(res => res.json())
+          .then(data => {
+            if (data.reset) {
+              console.log('🔁 Reset-Signal empfangen');
+              location.reload(); // einfacher Reset (neu laden)
+            }
+          });
+      }, 250);
+
+      function updateInfoBox() {
+        let timeText = "⏱️ Letztes Update: –";
+        let speedText = "🚀 Geschwindigkeit: –";
+        let restDistText = "📏 Reststrecke: –";
+        let coveredDistText = "✅ Zurückgelegt: –";
+        let totalDistText = "🧭 Gesamtstrecke: –";
+        let avgSpeedText = "📈 Ø-Tempo: –";
+        let suggSpeedText = "🌟 Ziel: – / –";
+
+        if (lastUpdateTime) {
+          let delta = Date.now() - lastUpdateTime;
+          if (gpsPaused && pauseTime) {
+            delta -= Date.now() - pauseTime;
+          }
+          timeText = `⏱️ Letztes Update: ${(delta / 1000).toFixed(2)} s`;
         }
-        remainingTime /= 1000;
+        if (currentSpeed !== null) {
+          const kmh = (currentSpeed * 3.6).toFixed(1);
+          speedText = `🚀 Geschwindigkeit: ${kmh} km/h`;
+        }
+        if (distanceToGoal !== null) {
+          restDistText = `📏 Reststrecke: ${distanceToGoal.toFixed(1)} m`;
+        }
+        if (distanceCovered !== null) {
+          coveredDistText = `✅ Zurückgelegt: ${distanceCovered.toFixed(1)} m`;
+        }
+        if (typeof totalDistance === "number") {
+          totalDistText = `🧭 Gesamtstrecke: ${totalDistance.toFixed(1)} m`;
+        }
+        if (averageSpeed > 0) {
+          const kmh = (averageSpeed * 3.6).toFixed(1);
+          avgSpeedText = `📈 Ø-Tempo: ${kmh} km/h`;
+        }
 
-        const lapLength = totalDistance;
-        const baseCandidate = smoothedSpeed !== null
-          ? 0.7 * smoothedSpeed + 0.3 * averageSpeed
-          : (averageSpeed || 0);
-        const baseline = baseCandidate > 0 ? baseCandidate : 0;
-        if (remainingTime > 0 && lapLength > 0 && baseline > 0) {
-          const predictedLaps = (distanceCovered + baseline * remainingTime) / lapLength;
-          let lowerTarget = Math.floor(predictedLaps);
-          if (lowerTarget < lapsCompleted) lowerTarget = lapsCompleted;
-          const upperTarget = lowerTarget + 1;
+        if (firstTrackingTime && distanceCovered > 0) {
+          const paused = totalPausedTime + (gpsPaused && pauseTime ? Date.now() - pauseTime : 0);
+          const elapsedSec = (Date.now() - firstTrackingTime - paused) / 1000;
+          if (elapsedSec > 0) {
+            averageSpeed = distanceCovered / elapsedSec;
+          }
 
-          let speedLower = (lowerTarget * lapLength - distanceCovered) / remainingTime;
-          let speedUpper = (upperTarget * lapLength - distanceCovered) / remainingTime;
+          let remainingTime = countdownRemaining;
+          if (countdownStart !== null) {
+            remainingTime = countdownRemaining - (Date.now() - countdownStart);
+          }
+          remainingTime /= 1000;
 
-          if (currentSpeed && speedLower >= currentSpeed) speedLower = currentSpeed * 0.9;
-          if (currentSpeed && speedUpper <= currentSpeed) speedUpper = currentSpeed * 1.1;
+          const lapLength = totalDistance;
+          const baseCandidate = smoothedSpeed !== null
+            ? 0.7 * smoothedSpeed + 0.3 * averageSpeed
+            : (averageSpeed || 0);
+          const baseline = baseCandidate > 0 ? baseCandidate : 0;
+          if (remainingTime > 0 && lapLength > 0 && baseline > 0) {
+            const predictedLaps = (distanceCovered + baseline * remainingTime) / lapLength;
+            let lowerTarget = Math.floor(predictedLaps);
+            if (lowerTarget < lapsCompleted) lowerTarget = lapsCompleted;
+            const upperTarget = lowerTarget + 1;
 
-          const validLower = speedLower > 0 && speedLower <= MAX_SPEED;
-          const validUpper = speedUpper > 0 && speedUpper <= MAX_SPEED;
+            let speedLower = (lowerTarget * lapLength - distanceCovered) / remainingTime;
+            let speedUpper = (upperTarget * lapLength - distanceCovered) / remainingTime;
 
-          const lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
-          const lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
+            if (currentSpeed && speedLower >= currentSpeed) speedLower = currentSpeed * 0.9;
+            if (currentSpeed && speedUpper <= currentSpeed) speedUpper = currentSpeed * 1.1;
 
-          if (validLower && validUpper) {
-            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
-            suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
-            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} ↓ (${lapsLower.toFixed(1)} R) / ${suggestedSpeedUpper} ↑ (${lapsUpper.toFixed(1)} R) km/h`;
-          } else if (validLower) {
-            suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
-            suggestedSpeedUpper = null;
-            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsLower.toFixed(1)} R)`;
-          } else if (validUpper) {
-            suggestedSpeedLower = (speedUpper * 3.6).toFixed(1);
-            suggestedSpeedUpper = null;
-            suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsUpper.toFixed(1)} R)`;
+            const validLower = speedLower > 0 && speedLower <= MAX_SPEED;
+            const validUpper = speedUpper > 0 && speedUpper <= MAX_SPEED;
+
+            lapsLower = (distanceCovered + speedLower * remainingTime) / lapLength;
+            lapsUpper = (distanceCovered + speedUpper * remainingTime) / lapLength;
+
+            if (validLower && validUpper) {
+              suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+              suggestedSpeedUpper = (speedUpper * 3.6).toFixed(1);
+              suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} ↓ (${lapsLower.toFixed(1)} R) / ${suggestedSpeedUpper} ↑ (${lapsUpper.toFixed(1)} R) km/h`;
+            } else if (validLower) {
+              suggestedSpeedLower = (speedLower * 3.6).toFixed(1);
+              suggestedSpeedUpper = null;
+              suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsLower.toFixed(1)} R)`;
+            } else if (validUpper) {
+              suggestedSpeedLower = (speedUpper * 3.6).toFixed(1);
+              suggestedSpeedUpper = null;
+              suggSpeedText = `🌟 Ziel: ${suggestedSpeedLower} km/h (${lapsUpper.toFixed(1)} R)`;
+
+              // Zielgeschwindigkeit und Runden an Backend senden
+              fetch('http://localhost:3000/api/target-speed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  lower: suggestedSpeedLower,
+                  upper: suggestedSpeedUpper,
+                  lapsLower: lapsLower,
+                  lapsUpper: lapsUpper
+                })
+              });
+
+            }
           }
         }
+
+        const timerLine = infoBox.innerHTML.match(/⏳ Timer: .*/);
+        infoBox.innerHTML = `${timeText}<br>${speedText}<br>${avgSpeedText}<br>${restDistText}<br>${coveredDistText}<br>${totalDistText}<br>${suggSpeedText}<br>` + (timerLine ? timerLine[0] : `⏳ Timer: 05:00.000`);
       }
 
-      const timerLine = infoBox.innerHTML.match(/⏳ Timer: .*/);
-      infoBox.innerHTML = `${timeText}<br>${speedText}<br>${avgSpeedText}<br>${restDistText}<br>${coveredDistText}<br>${totalDistText}<br>${suggSpeedText}<br>` + (timerLine ? timerLine[0] : `⏳ Timer: 05:00.000`);
-    }
-
-    setInterval(updateInfoBox, 200);
+      setInterval(updateInfoBox, 200);
 
         // Strecke und Marker vorbereiten
     function initRoute() {
@@ -327,12 +411,12 @@ L.layerGroup([satellite, labels]).addTo(map);
       updateDistance();
     }
 
-    function drawPolyline() {
-      if (polyline) map.removeLayer(polyline);
-      if (routePoints.length >= 2) {
-        polyline = L.polyline(routePoints, { color: 'blue' }).addTo(map);
+      function drawPolyline() {
+        if (polyline) map.removeLayer(polyline);
+        if (routePoints.length >= 2) {
+          polyline = L.polyline(routePoints, { color: 'blue' }).addTo(map);
+        }
       }
-    }
 
      function updateDistance() {
       if (routePoints.length >= 2) {
@@ -543,4 +627,5 @@ L.layerGroup([satellite, labels]).addTo(map);
 })();
 </script>
 </body>
+
 </html>

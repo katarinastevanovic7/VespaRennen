@@ -25,6 +25,15 @@ Start your Frontend
   - Local:   http://localhost:8080/ 
   - Network: http://192.168.178.180:8080/
 
+To start Project with Backend 
+
+1. open index.html (backend) and click start tracking
+2. cd backend 
+3. node server.js 
+4. open another terminal 
+5. cd frontend
+6. npm run serve
+
 ## Finish 
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.

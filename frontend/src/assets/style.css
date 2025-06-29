@@ -12,66 +12,145 @@ body {
   .app-container {
     display: flex;
     flex-direction: column;
+    gap: 1rem;
     justify-content: center;
     align-items: center;
     height: 100vh;
     padding: 1rem;
   }
-  
-  .speed-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 1rem;
-    gap: 1rem;
+  .speed-row {
+     display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch; /* ✅ Jetzt richten sich alle an der Unterkante aus */
+  margin-top: 1rem;
+  gap: 0.1rem;
   }
 
   /* Geschwindigkeit */
   .speed-display {
-    font-size: 120px;
+    font-size: 90px;
     font-weight: 400;
     color: #FFF8E1;
     display: flex;
     align-items: baseline;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.1rem;
   }
 
-  
-  .speed-display .unit {
-    font-size: 24px;
-    margin-left: 8px;
-  }
-  
-  /* Zielgeschwindigkeit */
-  .target-display {
-    font-size: 20px;
-    padding: 0.2rem 0;
-    margin-bottom: 0.3rem;
+  .speed-display {
+    font-size: 90px;
+    font-weight: 400;
+    color: #FFF8E1;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.rem;
+    align-items: baseline;
+    justify-content: center; /* ✅ macht die Anzeige zentriert */
+    margin-bottom: 0.1rem;
+  }
+
+  .target-display {
+    width: 100%;
+    margin-bottom: 1rem;
   }
   
+  /* Zeile mit linkem & rechtem Bereich */
+  .speed-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+    padding-right: 1rem; /* optional – Abstand zum rechten Rand */
+    padding-left: 1rem;  /* optional – Abstand zum linken Rand */
+  }
+  
+  .left {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 200px; /* ⬅️ sorgt dafür, dass .right etwas Platz hat */
+  }
+  
+  .right {
+    margin-left: 0.5rem; /* ⬅️ erzeugt die sichtbare Lücke */
+  }
+  
+  .right .laps {
+    font-size: 20px;
+    font-weight: 600;
+    color: #bbb;
+    opacity: 0.8;
+  }
+  
+  /* Zahlen-Styling */
+  .value {
+    font-size: 90px;
+    font-weight: 400;
+    color: inherit;
+  }
+  
+  .unit {
+    font-size: 24px;
+    color: inherit;
+  }
+
+.target-display .value {
+  font-size: 90px;
+  font-weight: 400;
+  color: inherit; /* übernimmt die Farbe von .target-display */
+}
+
+.target-display .unit {
+  font-size: 24px;
+  margin-left: 8px;
+  color: inherit; /* auch die Einheit wird eingefärbt */
+}
+.laps {
+  font-size: 24px;
+  font-weight: 600;
+  color: #bbb;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+
+
+/* 🆕 Laps-Zeile */
+.target-display .laps {
+  font-size: 50px;
+  font-weight: 600;
+  color: #bbb;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+
+/* Farbe über Klassen */
+.text-danger {
+  color: #ff4c4c;
+}
+
+.text-success {
+  color: #00cc66;
+}
   /* 🟨 Container für Timer + Buttons */
   .timer-container {
     background-color: #FFF8E1;
     color: black;
     border-radius: 50px;
-    width: 150%;
+    width: 100%;
     max-width: 500px;
     margin-top: auto;
-    margin-bottom: 1rem;
+    margin-bottom: auto;
     padding: 1.2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10rem;
+    gap: 9rem;
+    min-height: 320px;       /* fixiere Höhe für konstantes Layout */
+  max-height: 320px;
     position: relative; /* Wichtig für absolute Positionierung */
+
   }
   
   .timer-display {
-   height: 30px; /* feste Höhe, verhindert Ausdehnung */
+    height: 150px; /* realistische Höhe für große Zahlen */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,20 +162,6 @@ body {
     line-height: 1;
     position: absolute;
     top: 20px;
-  }
-  
-  .phase-container {
-    height: 10px; /* feste Höhe verhindert das Springen */
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    margin-top: -2rem; /* reduziert den Abstand zum Timer */
-  }
-  
-  .phase-number {
-    font-size: 60px; /* kleiner als Timer-Zeit */
-    line-height: 1;
-    
   }
   
   
@@ -115,11 +180,12 @@ body {
     padding: 0.6rem 1.6rem;
     border-radius: 35px;
     font-weight: bold;
+    min-height: 50px;
     min-width: 100px;
     border: none;
   }
 
-  /* Start-Button größer */
+/* Start-Button größer */
 .button-row .btn-warning {
     font-size: 22px;
     padding: 0.8rem 2rem;
@@ -129,116 +195,134 @@ body {
   
   /* Stop + Reset nebeneinander */
   .stop-reset-row {
+    margin-bottom: 15rem; /* ⬅️ Abstand nach unten! */
     display: flex;
-    gap: 1rem;
     justify-content: center;
   }
 
-  /* Bootstrap-Button-Anpassungen */
-  .btn-warning {
-    background-color: #f4a300 !important;
-    color: black !important;
-    margin-bottom: 1rem;
-  }
-  
-  .btn-danger {
-    background-color: #FB0000D9 !important;
-    color: black !important;
-  }
-  
-  .btn-secondary {
-    background-color: #444 !important;
-    color: white !important;
-  }
-  
-  .arrow {
-    font-size: 36px;
-  }
-  
-  .text-danger {
-    color: #ff4c4c;
-  }
-  
-  .text-success {
-    color: #00cc66;
-  }
-  
-  /* Trennlinien */
-  .separator {
-    width: 220%;
-    height: 2px;
-    background-color: #FFF8E1;
-    border: none;
-    opacity: 1;
-    margin: 0; /* Basis zurücksetzen */
-  }
-  
-  /* Erste Linie unter der Geschwindigkeit */
-  .separator-top {
-    position: relative;
-    /*top: 2rem; /* verschiebt nur die Linie selbst nach unten */
-    margin-top: 1.5rem;
-  }
-  
-  /* Zweite Linie unter der Zielanzeige */
-  .separator-bottom {
-    margin-top: 1rem;
-    margin-bottom: 0.1rem; /* näher zum beigen Frame */
-  }
+/* Bootstrap-Button-Anpassungen */
+.btn-warning {
+  background-color: #f4a300 !important;
+  color: black !important;
+  margin-bottom: 1rem;
+}
 
 
-  /* Skalierbarer Wrapper */
+.btn-danger {
+  background-color: #FB0000D9 !important;
+  color: black !important;
+}
+
+.btn-secondary {
+  background-color: #444 !important;
+  color: white !important;
+}
+
+.arrow {
+  font-size: 36px;
+}
+
+.text-danger {
+  color: #ff4c4c;
+}
+
+.text-success {
+  color: #00cc66;
+}
+
+/* Trennlinien */
+.separator {
+  width: 220%;
+  height: 2px;
+  background-color: #FFF8E1;
+  border: none;
+  opacity: 1;
+  margin: 0;
+}
+
+.separator-top {
+  margin-top: 1.5rem;
+}
+
+.separator-bottom {
+  margin-top: 1rem;
+  margin-bottom: 0.1rem;
+}
+
+/* Popup-Overlay (immer verfügbar) */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-box {
+  background: white;
+  border-radius: 10px;
+  width: 400px;
+  padding: 2rem;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  text-align: center;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.popup-message {
+  font-size: 30px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 1rem;
+}
+
+/* Animation (optional) */
+@keyframes fadeInOut {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Skalierbarer Wrapper */
 .scale-wrapper {
-    transform: scale(0.95); /* leicht verkleinern für alle */
-    transform-origin: top center;
+  transform: scale(0.95);
+  transform-origin: top center;
+}
+
+/* Media Query für kleine Bildschirme */
+@media (max-height: 700px) {
+  .scale-wrapper {
+    transform: scale(0.85);
   }
-  
-  /* Für kleine Bildschirme: zusätzlich stärker skalieren */
-  @media (max-height: 700px) {
-    .scale-wrapper {
-      transform: scale(0.85);
-      /*margin-top: -5rem;*/
-    }
-  
-    /* Zusätzlich kannst du optional Feinjustierung machen: */
-    .speed-display {
-      font-size: 90px;
-    }
-  
-    .timer-display .timer {
-      font-size: 80px;
-    }
-  
-    button {
-      padding: 0.4rem 1rem;
-      font-size: 16px;
-    }
-  
-    .timer-container {
-      padding: 1.2rem;
-      gap: 1rem;
-    }
-    .popup-message {
-      position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #fff3cd;
-      color: #856404;
-      padding: 1rem 2rem;
-      border-radius: 12px;
-      font-size: 20px;
-      z-index: 9999;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-      animation: fadeInOut 4s ease-in-out forwards;
-    }
-    
-    @keyframes fadeInOut {
-      0%   { opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
+
+  .speed-display {
+    font-size: 90px;
   }
-  
-  
+
+  .timer-display .timer {
+    font-size: 120px;
+    position: relative;
+    top: 0;
+  }
+
+  button {
+    padding: 0.4rem 1rem;
+    font-size: 16px;
+  }
+
+  .timer-container {
+    padding: 1.2rem;
+    gap: 1rem;
+  }
+}

@@ -1,63 +1,70 @@
 <template>
   <div class="scale-wrapper">
     <div class="app-container text-center text-light">
-      <div class="speed-wrapper">
-        <div class="speed-display">
-          <span class="speed">{{ speedDisplay }}</span>
-          <span class="unit">km/h</span>
-        </div>
+      <div class="speed-row">
+        <!--Zielgeschwindigkeit(langsam)-->
+        <TargetSpeedComponent
+          :targetSpeed="targetSpeedUpper"
+          :laps="lapsUpper"
+          directionClass="text-success"
+        />
+        <!--Aktuelle Geschwindigkeit zentriert-->
+        <SpeedComponent :speed="speedDisplay" />
+        <!--Zielgeschwindigkeit(schnell)-->
+        <TargetSpeedComponent
+          :targetSpeed="targetSpeedLower"
+          :laps="lapsLower"
+          directionClass="text-danger"
+        />
+      </div>
 
-        <hr class="separator" />
-
-        <div class="target-display">
-          <span class="arrow">{{ directionArrow }}</span>
-          <span :class="directionClass">{{ targetSpeedDisplay }}</span>
-        </div>
-
-        <hr class="separator" />
-
-        <div class="timer-container">
-          <div class="timer-display">
-            <span class="timer">{{ formattedTime }}</span>
-          </div>
-
-       <div class="phase-container">
-  <span v-if="time <= 35" class="phase-number">{{ phaseCounter }}</span>
-</div>
-
-          <div class="button-row">
-            <button class="btn btn-warning" @click="start" :disabled="running">Start</button>
-            <div class="stop-reset-row">
-              <button class="btn btn-danger" @click="stop" :disabled="!running">Stop</button>
-              <button class="btn btn-secondary" @click="reset">Reset</button>
-            </div>
-          </div>
-
-          <div v-if="message" class="popup-message">
-  {{ message }}
-</div>
-        </div>
+        <TimerComponent 
+          :time="formattedTime"
+          @start="start"
+          @reset="reset"
+         
+        />
+        <MessageComponent 
+          :message="message" 
+          :showMessage="showMessage"
+          @closeMessage="showMessage = false"
+        />
       </div>
     </div>
-  </div>
+
 </template>
 
 <script>
+import SpeedComponent from './components/speedComponent.vue';
+import TargetSpeedComponent from './components/targetSpeedComponent.vue';
+import TimerComponent from './components/timerComponent.vue';
+import MessageComponent from './components/messageComponent.vue';
+
 export default {
-  name: 'App',
+  components: {
+    SpeedComponent,
+    TargetSpeedComponent,
+    TimerComponent,
+    MessageComponent
+  },
   data() {
     return {
-      running: false,
-      countdown: 5,
-      time: 0,
-      distance: 0,
+      time:300,
       timerInterval: null,
+      running: false,
+      //paused: false,
+      distance: 0,
       speedDisplay: '--',
       targetSpeedDisplay: '--',
       directionArrow: '',
       directionClass: '',
-      phaseCounter: 6,
-      message: ''
+      showMessage: false,
+      message: '',
+      targetSpeedLower: null,
+    targetSpeedUpper: null,
+     lapsLower: null,
+    lapsUpper: null
+     
     };
   },
   computed: {
@@ -67,77 +74,115 @@ export default {
       return `${minutes}:${seconds}`;
     }
   },
+  mounted() {
+    setInterval(() => {
+      fetch('http://localhost:3000/api/gps/status')
+        .then(res => res.json())
+        .then(data => {
+          console.log('📡 GPS-Daten empfangen:', data);
+          if (data.speed !== undefined) {
+            const speedKmh = data.speed * 3.6;
+            this.speedDisplay = speedKmh.toFixed(1);
+
+          }
+        });
+
+            // Zielgeschwindigkeit und Laps vom Backend laden
+      fetch('http://localhost:3000/api/target-speed')
+        .then(res => res.json())
+        .then(target => {
+         if (target.lower !== undefined && target.upper !== undefined) {
+            this.targetSpeedLower = target.lower;
+            this.targetSpeedUpper = target.upper;
+            console.log("🎯 targetspeed vom Server:", target.lapsLower, target.lapsUpper);
+          }
+      if (target.lapsLower !== undefined && target.lapsUpper !== undefined) {
+  this.lapsLower = target.lapsLower;
+  this.lapsUpper = target.lapsUpper;
+  console.log("🎯 Laps vom Server:", target.lapsLower, target.lapsUpper);
+}
+            
+          
+        });
+    }, 400);
+  },
+        
+  
   methods: {
-    start() {
-      this.message = '';
-      this.running = true;
-      this.phaseCounter = 6;
-      this.time = 60; // 5 Minuten
+    
+  start() {
 
-      this.timerInterval = setInterval(() => {
-        if (this.time <= 0) {
-          this.message = 'You made it Jörg! 🎉🛵';
-          this.stop();
-       
-          return;
-        }
+      // ⛔ Verhindere Mehrfachstart
+  if (this.running && !this.paused) {
+    console.warn('⏳ Timer läuft bereits – Mehrfachstart verhindert');
+    return;
+  }
 
-        if (this.time % 30 === 0 && this.phaseCounter > 0) {
-          this.phaseCounter--;
-        }
+  // ✅ Bereits laufenden Timer stoppen, falls versehentlich mehrfach gedrückt
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+    this.timerInterval = null;
+  }
 
-        this.time--;
+  this.message = '';
+  this.showMessage = false;
+  this.running = true;
+  this.paused = false;
 
-        let speed;
-        if (this.time > 240) {
-          speed = Math.random() * 10 + 5;
-        } else if (this.time > 60) {
-          speed = 15 + Math.sin(this.time / 10) * 10 + Math.random() * 5;
-        } else {
-          speed = 10 + Math.random() * 6;
-        }
+  // Backend Tracking starten
+  fetch('http://localhost:3000/api/start-tracking', {
+    method: 'POST'
+  });
 
-        speed = Math.min(Math.max(speed, 0), 50);
-        this.speedDisplay = speed.toFixed(0);
+  if (this.time === 0) {
+    this.time = 300;
+  }
 
-        const speedMps = speed * 1000 / 3600;
-        this.distance += speedMps;
-
-        const targetSpeedKmh = this.time >= 290 ? 30 : 10;
-        this.targetSpeedDisplay = `${targetSpeedKmh.toFixed(0)} km/h`;
-
-        if (speed > targetSpeedKmh + 1) {
-          this.directionArrow = '↓';
-          this.directionClass = 'text-danger';
-        } else if (speed < targetSpeedKmh - 1) {
-          this.directionArrow = '↑';
-          this.directionClass = 'text-success';
-        } else {
-          this.directionArrow = '•';
-          this.directionClass = '';
-        }
-      }, 1000);
-    },
-    stop() {
-      clearInterval(this.timerInterval);
-      this.running = false;
-    },
-    reset() {
-      clearInterval(this.timerInterval);
-      this.time = 0;
-      this.distance = 0;
-      this.running = false;
-      this.phaseCounter = 6;
-      this.message = '';
-      this.speedDisplay = '--';
-      this.targetSpeedDisplay = '--';
-      this.directionArrow = '';
-      this.directionClass = '';
+  this.timerInterval = setInterval(() => {
+    if (this.time <= 0) {
+      this.message = 'You made it Jörg! 🎉🛵';
+      this.showMessage = true; 
+      this.stop();
+      return;
     }
+    this.time--;
+  }, 1000);
+},
+
+   stop() {
+  clearInterval(this.timerInterval);
+  this.running = false;
+
+  fetch('http://localhost:3000/api/pause-tracking', {
+    method: 'POST'
+  });
+},
+
+    
+    reset() {
+  this.stop();
+  this.time = 300;
+  this.distance = 0;
+  this.running = false;
+  this.paused = false;
+  this.speedDisplay = '--';
+  this.targetSpeedDisplay = '--';
+  this.directionArrow = '';
+  this.directionClass = '';
+
+  // ➕ Backend informieren
+  fetch('http://localhost:3000/api/reset-tracking', {
+    method: 'POST'
+  });
+},
+
+
+
+ 
   }
 };
 </script>
 
 <style scoped>
-/* Deine CSS-Klassen wie .timer-display, .button-row, usw. */
+/* optionales Styling */
 </style>

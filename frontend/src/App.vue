@@ -59,10 +59,11 @@ export default {
       directionClass: '',
       showMessage: false,
       message: '',
-      targetSpeedLower: null,
-      targetSpeedUpper: null,
-      lapsLower: null,
-      lapsUpper: null
+      targetSpeedLower: 0,
+      targetSpeedUpper: 0,
+      lapsLower: 0.0,
+      lapsUpper: 0.0
+
     };
   },
   computed: {
@@ -91,10 +92,12 @@ export default {
       fetch('http://localhost:3000/api/target-speed')
         .then(res => res.json())
         .then(target => {
-          if (target.lower !== undefined) this.targetSpeedLower = target.lower;
-          if (target.upper !== undefined) this.targetSpeedUpper = target.upper;
-          if (target.lapsLower !== undefined) this.lapsLower = target.lapsLower;
-          if (target.lapsUpper !== undefined) this.lapsUpper = target.lapsUpper;
+          if (typeof target.lower === 'number') this.targetSpeedLower = target.lower;
+          if (typeof target.upper === 'number') this.targetSpeedUpper = target.upper;
+          if (typeof target.lapsLower === 'number') this.lapsLower = target.lapsLower;
+          if (typeof target.lapsUpper === 'number') this.lapsUpper = target.lapsUpper;
+
+
 
           console.log("🎯 Ziel:", target.lower, target.upper, target.lapsLower, target.lapsUpper);
         });

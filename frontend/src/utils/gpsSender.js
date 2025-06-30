@@ -7,13 +7,18 @@ let smoothedSpeed = null;
 const MIN_DISTANCE_KM = 0.003; // 3 Meter
 const MAX_SPEED_M_S = 30; // 108 km/h
 const SMOOTHING_FACTOR = 0.2;
+const SEND_INTERVAL_MS = 400; // 🔁 alle 400ms auch bei Stillstand senden
 
 export function startGps() {
   if ('geolocation' in navigator) {
     console.log("📍 GPS-Tracking gestartet...");
 
+    // Startet kontinuierliches Geotracking
     navigator.geolocation.watchPosition(
-      sendPosition,
+      position => {
+        updatePosition(position);
+        // Kein direktes Senden hier – sendInterval kümmert sich darum
+      },
       handleError,
       {
         enableHighAccuracy: true,
@@ -21,6 +26,14 @@ export function startGps() {
         timeout: 10000
       }
     );
+
+    // 🔁 Sendet alle 400ms die letzte bekannte Position (auch wenn man stillsteht)
+    setInterval(() => {
+      if (lastPosition) {
+        sendToBackend(lastPosition);
+      }
+    }, SEND_INTERVAL_MS);
+
   } else {
     console.warn("❌ Geolocation nicht verfügbar.");
   }
@@ -38,7 +51,7 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function sendPosition(position) {
+function updatePosition(position) {
   const { latitude, longitude, speed } = position.coords;
   const now = Date.now();
   let calcSpeed = speed;
@@ -47,7 +60,6 @@ function sendPosition(position) {
     const distKm = getDistanceKm(lastPosition.lat, lastPosition.lon, latitude, longitude);
     const timeSec = (now - lastTimestamp) / 1000;
 
-    // Nur wenn genug Zeit und Strecke vergangen ist
     if (timeSec >= 2 && distKm >= MIN_DISTANCE_KM) {
       const rawSpeed = (distKm / timeSec) * 1000; // m/s
 
@@ -63,21 +75,23 @@ function sendPosition(position) {
   }
 
   // Glättung
-  if (calcSpeed != null) {
+  if (typeof calcSpeed === 'number' && calcSpeed >= 0.3 && calcSpeed < MAX_SPEED_M_S) {
     smoothedSpeed = smoothedSpeed == null
       ? calcSpeed
       : smoothedSpeed * (1 - SMOOTHING_FACTOR) + calcSpeed * SMOOTHING_FACTOR;
+  } else {
+    smoothedSpeed = 0;
   }
 
-  lastPosition = { lat: latitude, lon: longitude };
-  lastTimestamp = now;
-
-  const data = {
+  lastPosition = {
     lat: latitude,
     lng: longitude,
     speed: parseFloat((smoothedSpeed || 0).toFixed(2))
   };
+  lastTimestamp = now;
+}
 
+function sendToBackend(data) {
   console.log("📡 Sende GPS-Daten an Backend:", data);
 
   fetch('http://localhost:3000/api/gps/update', {

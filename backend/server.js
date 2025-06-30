@@ -2,12 +2,14 @@
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
+const { processGpsPosition } = require('./gpsProcessor'); // ⬅️ Importiert
+
 const app = express();
 const port = 3000;
 
-// Speicher für GPS-Daten und Zielwerte
-let latestData = null;
-let targetSpeed = {
+// Speicher für berechnete GPS- und Ziel-Daten
+let latestData = {
+  speed: 0,
   lower: 0,
   upper: 0,
   lapsLower: 0,
@@ -29,60 +31,48 @@ app.get('/', (req, res) => {
   res.send('✅ Backend läuft!');
 });
 
-// 📡 GPS-Daten empfangen
+// 📡 GPS-Daten empfangen und verarbeiten
 app.post('/api/gps/update', (req, res) => {
-  latestData = req.body;
-  console.log('📡 Neue GPS-Daten empfangen:', latestData);
-  res.sendStatus(200);
-});
+  const result = processGpsPosition(req.body);
 
-// 📡 GPS-Daten abfragen
-app.get('/api/gps/status', (req, res) => {
-  res.json(latestData || {});
-});
+  if (result) {
+    latestData = {
+      speed: result.currentSpeed,
+      lower: result.suggestedSpeedLower,
+      upper: result.suggestedSpeedUpper,
+      lapsLower: result.lapsLower,
+      lapsUpper: result.lapsUpper
+    };
 
-// 🎯 Zielgeschwindigkeiten empfangen
-app.post('/api/target-speed', (req, res) => {
-  const { lower, upper, lapsLower, lapsUpper } = req.body;
-
-  console.log('📥 Zielwerte empfangen:');
-  console.log('  Untere Zielgeschwindigkeit:', lower);
-  console.log('  Obere Zielgeschwindigkeit:', upper);
-  console.log('  Runden-Ziel unten:', lapsLower);
-  console.log('  Runden-Ziel oben:', lapsUpper);
-
-  targetSpeed.lower = lower;
-  targetSpeed.upper = upper;
-  targetSpeed.lapsLower = lapsLower;
-  targetSpeed.lapsUpper = lapsUpper;
-
-  res.sendStatus(200);
-});
-
-// 🎯 Zielgeschwindigkeiten abrufen
-app.get('/api/target-speed', (req, res) => {
-  res.json(targetSpeed);
-});
-
-// 🚀 Start-Tracking vom Frontend triggern
-/*app.post('/api/start-tracking', (req, res) => {
-  startTrackingFlag = true;
-  console.log('🚀 Tracking wurde vom Frontend getriggert!');
-  res.sendStatus(200);
-});
-
-// ⏳ Wird regelmäßig vom Tracker-Frontend abgefragt
-app.get('/api/start-tracking', (req, res) => {
-  res.json({ start: startTrackingFlag });
-  if (startTrackingFlag) {
-    startTrackingFlag = false; // Nach einer Abfrage zurücksetzen
+    console.log('📡 Neue GPS-Daten verarbeitet:', latestData);
   }
-});*/
 
+  res.sendStatus(200);
+});
 
+// 📡 Aktuelle Werte abrufen (für Geschwindigkeit etc.)
+app.get('/api/gps/status', (req, res) => {
+  res.json({ speed: latestData.speed });
+});
 
+// 🎯 Zielgeschwindigkeiten + Laps abrufen
+app.get('/api/target-speed', (req, res) => {
+  const {
+    suggestedSpeedLower,
+    suggestedSpeedUpper,
+    lapsLower,
+    lapsUpper
+  } = lastTargetData || {};
 
-// Start
+  res.json({
+    lower: suggestedSpeedLower,
+    upper: suggestedSpeedUpper,
+    lapsLower,
+    lapsUpper
+  });
+});
+
+// 🟢 Start
 app.post('/api/start-tracking', (req, res) => {
   startTrackingFlag = true;
   res.sendStatus(200);
@@ -92,7 +82,7 @@ app.get('/api/start-tracking', (req, res) => {
   if (startTrackingFlag) startTrackingFlag = false;
 });
 
-// Pause
+// ⏸️ Pause
 app.post('/api/pause-tracking', (req, res) => {
   pauseTrackingFlag = true;
   res.sendStatus(200);
@@ -102,8 +92,7 @@ app.get('/api/pause-tracking', (req, res) => {
   if (pauseTrackingFlag) pauseTrackingFlag = false;
 });
 
-
-// Reset
+// 🔁 Reset
 app.post('/api/reset-tracking', (req, res) => {
   resetTrackingFlag = true;
   res.sendStatus(200);
@@ -113,7 +102,7 @@ app.get('/api/reset-tracking', (req, res) => {
   if (resetTrackingFlag) resetTrackingFlag = false;
 });
 
-// Stop
+// 🔴 Stop
 app.post('/api/stop-tracking', (req, res) => {
   stopTrackingFlag = true;
   res.sendStatus(200);
@@ -123,7 +112,7 @@ app.get('/api/stop-tracking', (req, res) => {
   if (stopTrackingFlag) stopTrackingFlag = false;
 });
 
-// Resume
+// ▶️ Resume
 app.post('/api/resume-tracking', (req, res) => {
   resumeTrackingFlag = true;
   res.sendStatus(200);
@@ -132,7 +121,6 @@ app.get('/api/resume-tracking', (req, res) => {
   res.json({ resume: resumeTrackingFlag });
   if (resumeTrackingFlag) resumeTrackingFlag = false;
 });
-
 
 // HTTP-Server starten
 app.listen(port, () => {

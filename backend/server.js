@@ -1,10 +1,11 @@
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
-const { processGpsPosition, setRouteStart } = require('./gpsProcessor'); // ⬅️ setRouteStart hinzugefügt
+const path = require('path');
+const { processGpsPosition, setRouteStart } = require('./gpsProcessor');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // --- Aktueller GPS-Zustand ---
 let latestData = {
@@ -22,12 +23,20 @@ let resumeTrackingFlag = false;
 let resetTrackingFlag = false;
 let stopTrackingFlag = false;
 
-// Middleware
+// --- Middleware ---
 app.use(cors());
 app.use(express.json());
 
-// Test-Endpunkt
-app.get('/', (req, res) => {
+// 📦 Vue-Frontend statisch ausliefern
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// 🔁 Fallback nur für Nicht-API-Routen (damit Vue-Routing funktioniert)
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// ✅ Test-Endpunkt
+app.get('/api', (req, res) => {
   res.send('✅ Backend läuft!');
 });
 
@@ -122,14 +131,13 @@ app.post('/api/set-start', (req, res) => {
   }
 });
 
-// HTTP-Server starten
-app.listen(port, () => {
+// 🟢 HTTP-Server starten
+const server = app.listen(port, () => {
   console.log(`✅ HTTP-Server läuft unter http://localhost:${port}`);
 });
 
-// WebSocket-Server (optional)
-const wss = new WebSocket.Server({ port: 8080 });
+// 🌐 WebSocket-Server über denselben Port
+const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
   console.log('🌐 WebSocket: Frontend verbunden');
 });
-

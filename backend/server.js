@@ -1,8 +1,7 @@
-// server.js
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
-const { processGpsPosition } = require('./gpsProcessor');
+const { processGpsPosition, setRouteStart } = require('./gpsProcessor'); // ⬅️ setRouteStart hinzugefügt
 
 const app = express();
 const port = 3000;
@@ -111,6 +110,18 @@ app.get('/api/resume-tracking', (req, res) => {
   resumeTrackingFlag = false;
 });
 
+// 🎯 Startpunkt neu setzen
+app.post('/api/set-start', (req, res) => {
+  const { lat, lng } = req.body;
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    setRouteStart(lat, lng);
+    console.log(`🎯 Startpunkt neu gesetzt auf (${lat}, ${lng})`);
+    res.sendStatus(200);
+  } else {
+    res.status(400).send('❌ Ungültige Koordinaten');
+  }
+});
+
 // HTTP-Server starten
 app.listen(port, () => {
   console.log(`✅ HTTP-Server läuft unter http://localhost:${port}`);
@@ -119,5 +130,6 @@ app.listen(port, () => {
 // WebSocket-Server (optional)
 const wss = new WebSocket.Server({ port: 8080 });
 wss.on('connection', (ws) => {
-  console.log(`🌐 WebSocket: Frontend verbunden`);
+  console.log('🌐 WebSocket: Frontend verbunden');
 });
+

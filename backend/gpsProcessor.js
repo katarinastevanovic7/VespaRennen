@@ -1,42 +1,41 @@
-// gpsProcessor.js
 const turf = require('@turf/turf');
 
 // --- Globale Konfiguration & Zustand ---
 
-const routePoints = [
-  [48.71598339320953,12.844524979591371],
-  [48.71575700804107,12.844229936599731],
-  [48.71567918790413,12.844133377075197],
-  [48.71558368120788,12.84406363964081],
-  [48.71549701756735,12.844036817550661],
-  [48.71541919702824,12.84404754638672],
-  [48.71534845097914,12.8440797328949],
-  [48.71528124214032,12.844133377075197],
-  [48.715228182467314,12.844208478927614],
-  [48.715178660055365,12.84430503845215],
-  [48.71514682419336,12.844444513320923],
-  [48.71514505553377,12.844600081443788],
-  [48.7151680481036,12.844736874103548],
-  [48.71520518992499,12.844841480255127],
-  [48.71529362272265,12.844970226287842],
-  [48.71560667357726,12.845380604267122],
-  [48.715668576057936,12.845450341701508],
-  [48.715741090295566,12.845503985881807],
-  [48.71584013396345,12.845530807971956],
-  [48.71592149111622,12.845506668090822],
-  [48.71601345991305,12.845447659492493],
-  [48.716078899146915,12.845364511013031],
-  [48.71612842067271,12.845278680324554],
-  [48.71616379316127,12.845136523246767],
-  [48.716170867656025,12.845010459423067],
-  [48.71615671866555,12.844870984554293],
-  [48.71612134617201,12.844744920730593],
-  [48.71604883248247,12.844626903533936],
-  [48.715979855949094,12.844524979591371],
-  [48.71598339320953,12.844524979591371]
+let routePoints = [
+  [48.71598339320953, 12.844524979591371],
+  [48.71575700804107, 12.844229936599731],
+  [48.71567918790413, 12.844133377075197],
+  [48.71558368120788, 12.84406363964081],
+  [48.71549701756735, 12.844036817550661],
+  [48.71541919702824, 12.84404754638672],
+  [48.71534845097914, 12.8440797328949],
+  [48.71528124214032, 12.844133377075197],
+  [48.715228182467314, 12.844208478927614],
+  [48.715178660055365, 12.84430503845215],
+  [48.71514682419336, 12.844444513320923],
+  [48.71514505553377, 12.844600081443788],
+  [48.7151680481036, 12.844736874103548],
+  [48.71520518992499, 12.844841480255127],
+  [48.71529362272265, 12.844970226287842],
+  [48.71560667357726, 12.845380604267122],
+  [48.715668576057936, 12.845450341701508],
+  [48.715741090295566, 12.845503985881807],
+  [48.71584013396345, 12.845530807971956],
+  [48.71592149111622, 12.845506668090822],
+  [48.71601345991305, 12.845447659492493],
+  [48.716078899146915, 12.845364511013031],
+  [48.71612842067271, 12.845278680324554],
+  [48.71616379316127, 12.845136523246767],
+  [48.716170867656025, 12.845010459423067],
+  [48.71615671866555, 12.844870984554293],
+  [48.71612134617201, 12.844744920730593],
+  [48.71604883248247, 12.844626903533936],
+  [48.715979855949094, 12.844524979591371],
+  [48.71598339320953, 12.844524979591371]
 ];
 
-const turfLine = turf.lineString(routePoints.map(p => [p[1], p[0]]));
+let turfLine = turf.lineString(routePoints.map(p => [p[1], p[0]]));
 const COUNTDOWN_MS = 5 * 60 * 1000;
 const SMOOTHING_FACTOR = 0.2;
 const MAX_SPEED = 70 / 3.6;
@@ -58,14 +57,27 @@ let currentSpeed = null;
 let distanceCovered = 0;
 let distanceToGoal = 0;
 let prevAlong = null;
-let totalDistance = 0;
+let totalDistance = turf.length(turfLine, { units: 'meters' });
 let totalDistanceTravelled = 0;
 let lapsCompleted = 0;
 
-const totalLapDistance = turf.length(turfLine, { units: 'meters' });
-totalDistance = totalLapDistance;
+// --- Neue Funktion: Route rotieren (Startpunkt setzen) ---
+function rotateRouteToStart(lat, lng) {
+  const snap = turf.nearestPointOnLine(turfLine, turf.point([lng, lat]));
+  const snappedCoords = [snap.geometry.coordinates[1], snap.geometry.coordinates[0]];
 
-totalPausedTime = 0;
+  const open = routePoints.slice(0, -1);
+  open.splice(snap.properties.index + 1, 0, snappedCoords);
+
+  const rotated = open.slice(snap.properties.index + 1).concat(open.slice(0, snap.properties.index + 1));
+  rotated.push(rotated[0]);
+
+  routePoints = rotated;
+  turfLine = turf.lineString(routePoints.map(p => [p[1], p[0]]));
+  totalDistance = turf.length(turfLine, { units: 'meters' });
+
+  console.log('📍 Startpunkt wurde neu gesetzt bei:', snappedCoords);
+}
 
 // --- Hauptfunktion zur Verarbeitung von GPS-Daten ---
 function processGpsPosition({ lat, lng, speed }) {
@@ -101,6 +113,7 @@ function processGpsPosition({ lat, lng, speed }) {
 
   const currentPoint = turf.point([lng, lat]);
   const snapped = turf.nearestPointOnLine(turfLine, currentPoint);
+  const snappedLatLng = [snapped.geometry.coordinates[1], snapped.geometry.coordinates[0]];
   const distanceAlong = snapped.properties.location * 1000;
 
   if (prevAlong !== null) {
@@ -139,7 +152,8 @@ function processGpsPosition({ lat, lng, speed }) {
     suggestedSpeedLower: null,
     suggestedSpeedUpper: null,
     lapsLower: null,
-    lapsUpper: null
+    lapsUpper: null,
+    snappedLatLng // ⬅️ GESNAPPTES GPS AUF DER STRECKE
   };
 
   if (remainingTime > 0 && lapLength > 0 && baseSpeed > 0) {
@@ -170,4 +184,8 @@ function processGpsPosition({ lat, lng, speed }) {
   return result;
 }
 
-module.exports = { processGpsPosition };
+// --- Export ---
+module.exports = {
+  processGpsPosition,
+  setRouteStart: rotateRouteToStart
+};

@@ -15,15 +15,11 @@
       </div>
     </div>
   </div>
-  
-
-
 </template>
 
 <script>
 export default {
   props: ['time', 'phase', 'phaseVisible', 'running'],
-    emits: ['start', 'reset', 'resume', 'reset']
-
+  emits: ['start', 'reset', 'resume', 'stop']
 };
 </script>
